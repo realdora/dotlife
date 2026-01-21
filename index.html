@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DotLife - 人生周历壁纸 | Life Calendar Wallpaper</title>
+    <meta name="description" content="Generate your personal life calendar wallpaper for Mac. Every week is a dot. 生成专属于你的人生周历壁纸。">
+    <meta name="author" content="@realdora_eth">
+    
+    <!-- Favicon - 内嵌 SVG -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23050505'/><circle cx='10' cy='10' r='3' fill='%2300ff88'/><circle cx='22' cy='10' r='3' fill='%2300ff88'/><circle cx='10' cy='22' r='3' fill='%2300ff88'/><circle cx='22' cy='22' r='3' fill='%23222'/></svg>">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="DotLife - Life Calendar Wallpaper">
+    <meta property="og:description" content="Every week of your life as a dot. Generate your personal wallpaper for Mac.">
+    <meta property="og:type" content="website">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+SC:wght@300;400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #050505;
+            --bg-secondary: #0d0d0d;
+            --bg-tertiary: #161616;
+            --text-primary: #ffffff;
+            --text-secondary: #555555;
+            --text-tertiary: #333333;
+            --accent: #00ff88;
+            --accent-dim: rgba(0, 255, 136, 0.1);
+            --accent-glow: rgba(0, 255, 136, 0.3);
+            --border: #1a1a1a;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 移动端提示 */
+        .mobile-notice {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--accent);
+            padding: 16px 20px;
+            z-index: 100;
+            animation: slideUpNotice 0.5s ease 1s both;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-notice { display: block; }
+        }
+
+        @keyframes slideUpNotice {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .mobile-notice-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .mobile-notice-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .mobile-notice-text strong {
+            color: var(--accent);
+        }
+
+        .mobile-notice-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .mobile-notice-close:hover {
+            color: var(--text-primary);
+        }
+
+        /* 动态背景 */
+        .bg-container {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-grid {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(var(--border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 60px 60px;
+            opacity: 0.4;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(60px, 60px); }
+        }
+
+        .bg-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.15;
+            animation: glowFloat 15s ease-in-out infinite;
+        }
+
+        .bg-glow-1 { background: var(--accent); top: -200px; right: -100px; }
+        .bg-glow-2 { background: #0066ff; bottom: -200px; left: -100px; animation-delay: -7s; }
+
+        @keyframes glowFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        .particles {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--accent);
+            border-radius: 50%;
+            opacity: 0;
+            animation: particleFloat 8s ease-in-out infinite;
+        }
+
+        @keyframes particleFloat {
+            0% { opacity: 0; transform: translateY(100vh) scale(0); }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { opacity: 0; transform: translateY(-100px) scale(1); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 50px 40px;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 30px 20px 100px; }
+        }
+
+        /* 导航栏 */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 60px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            color: var(--accent);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--accent);
+            border-radius: 6px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+            padding: 5px;
+        }
+
+        .logo-icon span {
+            background: var(--accent);
+            border-radius: 50%;
+            animation: logoPulse 2s ease-in-out infinite;
+        }
+
+        .logo-icon span:nth-child(1) { animation-delay: 0s; }
+        .logo-icon span:nth-child(2) { animation-delay: 0.15s; }
+        .logo-icon span:nth-child(3) { animation-delay: 0.3s; }
+        .logo-icon span:nth-child(4) { animation-delay: 0.45s; opacity: 0.3; background: var(--text-tertiary); }
+
+        @keyframes logoPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .lang-switcher {
+            display: flex;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .lang-btn.active { background: var(--accent); color: var(--bg-primary); }
+        .lang-btn:hover:not(.active) { color: var(--text-primary); }
+
+        /* 头部 */
+        header {
+            text-align: center;
+            margin-bottom: 80px;
+            animation: fadeInUp 1s ease-out 0.2s both;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .headline {
+            font-size: clamp(36px, 7vw, 72px);
+            font-weight: 300;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            letter-spacing: -1px;
+        }
+
+        .headline .highlight {
+            color: var(--accent);
+            font-weight: 600;
+            position: relative;
+            display: inline-block;
+        }
+
+        .headline .highlight::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--accent);
+            transform: scaleX(0);
+            transform-origin: right;
+            animation: underlineReveal 1s ease-out 1s forwards;
+        }
+
+        @keyframes underlineReveal {
+            to { transform: scaleX(1); transform-origin: left; }
+        }
+
+        .subtitle {
+            font-size: 17px;
+            color: var(--text-secondary);
+            max-width: 480px;
+            margin: 0 auto;
+            line-height: 1.7;
+            font-weight: 300;
+        }
+
+        /* 主内容 */
+        .main-content {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 50px;
+            align-items: start;
+            animation: fadeInUp 1s ease-out 0.4s both;
+        }
+
+        @media (max-width: 1000px) {
+            .main-content { grid-template-columns: 1fr; }
+        }
+
+        /* 配置面板 */
+        .config-panel {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border: 1px solid var(--border);
+            padding: 35px;
+            position: sticky;
+            top: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        @media (max-width: 1000px) {
+            .config-panel { position: relative; top: 0; }
+        }
+
+        .config-panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 60px rgba(0, 255, 136, 0.05);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--accent);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .panel-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--text-tertiary);
+            background: var(--bg-primary);
+            padding: 5px 10px;
+            letter-spacing: 1px;
+        }
+
+        .form-group { margin-bottom: 25px; }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="date"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+        }
+
+        .date-hint {
+            font-size: 10px;
+            color: var(--text-tertiary);
+            margin-top: 6px;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .color-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .color-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .color-input-wrapper:hover { border-color: var(--text-tertiary); }
+
+        input[type="color"] {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 1px solid var(--border); border-radius: 2px; }
+
+        .color-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .generate-btn, .script-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .generate-btn {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .generate-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .generate-btn:hover::before { left: 100%; }
+
+        .generate-btn:hover {
+            background: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
+        }
+
+        .script-btn {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+
+        .script-btn:hover {
+            background: var(--accent-dim);
+            transform: translateY(-2px);
+        }
+
+        /* 预览区 */
+        .preview-section { display: flex; flex-direction: column; }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .preview-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .preview-meta { display: flex; align-items: center; gap: 15px; }
+
+        .resolution-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--accent);
+            background: var(--accent-dim);
+            padding: 6px 12px;
+            letter-spacing: 1px;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+        }
+
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: livePulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--accent-glow); }
+            50% { opacity: 0.5; box-shadow: 0 0 0 6px transparent; }
+        }
+
+        .preview-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 450px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .preview-container { padding: 15px; min-height: 300px; }
+        }
+
+        .preview-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.5;
+        }
+
+        #wallpaperCanvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+            transition: transform 0.5s ease;
+        }
+
+        .preview-container:hover #wallpaperCanvas { transform: scale(1.02); }
+
+        /* 统计卡片 */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        @media (max-width: 500px) {
+            .stats { grid-template-columns: 1fr; }
+        }
+
+        .stat-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 22px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-item::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--accent);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-item:hover::before { transform: scaleX(1); }
+        .stat-item:hover { border-color: var(--accent-dim); transform: translateY(-3px); }
+
+        .stat-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 26px;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* 下载按钮 */
+        .download-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 18px 32px;
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+            width: 100%;
+            text-transform: uppercase;
+        }
+
+        .download-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .download-btn svg { transition: transform 0.3s ease; }
+        .download-btn:hover svg { transform: translateY(2px); }
+
+        /* 设置指南 */
+        .setup-guide {
+            margin-top: 100px;
+            padding-top: 60px;
+            border-top: 1px solid var(--border);
+            animation: fadeInUp 1s ease-out 0.6s both;
+        }
+
+        .section-header { text-align: center; margin-bottom: 50px; }
+
+        .section-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--accent);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 300;
+            color: var(--text-primary);
+        }
+
+        /* 标签页切换 */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 40px;
+            border: 1px solid var(--border);
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 14px 24px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .tab-btn:not(.active):hover {
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+        }
+
+        @media (max-width: 800px) {
+            .steps { grid-template-columns: 1fr; }
+        }
+
+        .step {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            padding: 35px;
+            transition: all 0.4s ease;
+        }
+
+        .step:hover {
+            border-color: var(--accent);
+            transform: translateY(-5px);
+        }
+
+        .step-number {
+            font-family: 'Space Mono', monospace;
+            font-size: 48px;
+            color: var(--accent);
+            opacity: 0.15;
+            margin-bottom: 20px;
+            line-height: 1;
+        }
+
+        .step h3 {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .step p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .code-block {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            padding: 16px;
+            margin-top: 15px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--accent);
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* 模态框 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px 30px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            color: var(--accent);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+            line-height: 1;
+        }
+
+        .modal-close:hover { color: var(--text-primary); }
+
+        .modal-body { padding: 30px; }
+
+        .modal-section { margin-bottom: 25px; }
+        .modal-section:last-child { margin-bottom: 0; }
+
+        .modal-section h4 {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .modal-section p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .modal-code {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            padding: 20px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: #888;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.6;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .modal-code .comment { color: #555; }
+        .modal-code .string { color: var(--accent); }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .modal-btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+        }
+
+        .modal-btn-primary:hover { background: #fff; }
+
+        .modal-btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .modal-btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* 页脚 */
+        footer {
+            margin-top: 100px;
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .footer-author {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .footer-author a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .footer-author a:hover { opacity: 0.7; }
+
+        .footer-inspiration {
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+
+        .footer-inspiration a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        .footer-inspiration a:hover { color: var(--accent); }
+
+        /* 语言文本控制 */
+        [data-lang] { display: none; }
+        [data-lang].active { display: inline; }
+        div[data-lang].active, p[data-lang].active, h1[data-lang].active, h3[data-lang].active, h4[data-lang].active { display: block; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--accent);
+            color: var(--bg-primary);
+            padding: 14px 28px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            letter-spacing: 1px;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .toast { bottom: 100px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 移动端提示 -->
+    <div class="mobile-notice" id="mobileNotice">
+        <div class="mobile-notice-content">
+            <div class="mobile-notice-text">
+                <span data-lang="zh" class="active">📱 <strong>DotLife</strong> 是为 Mac 设计的壁纸工具。你可以在手机上预览，但需要在电脑上下载使用。</span>
+                <span data-lang="en">📱 <strong>DotLife</strong> is designed for Mac wallpapers. You can preview here, but download on your computer.</span>
+            </div>
+            <button class="mobile-notice-close" onclick="closeMobileNotice()">×</button>
+        </div>
+    </div>
+
+    <div class="bg-container">
+        <div class="bg-grid"></div>
+        <div class="bg-glow bg-glow-1"></div>
+        <div class="bg-glow bg-glow-2"></div>
+        <div class="particles" id="particles"></div>
+    </div>
+    
+    <div class="container">
+        <nav>
+            <div class="logo">
+                <div class="logo-icon">
+                    <span></span><span></span>
+                    <span></span><span></span>
+                </div>
+                DotLife
+            </div>
+            <div class="lang-switcher">
+                <button class="lang-btn active" data-lang-btn="zh">中文</button>
+                <button class="lang-btn" data-lang-btn="en">EN</button>
+            </div>
+        </nav>
+
+        <header>
+            <h1 class="headline">
+                <span data-lang="zh" class="active">你的人生，<span class="highlight">可视化</span></span>
+                <span data-lang="en">Your life, <span class="highlight">visualized</span></span>
+            </h1>
+            <p class="subtitle">
+                <span data-lang="zh" class="active">每一周都是一个点。生成专属于你的人生周历壁纸，提醒自己珍惜当下。</span>
+                <span data-lang="en">Every week is a dot. Generate your personal life calendar wallpaper and cherish every moment.</span>
+            </p>
+        </header>
+
+        <div class="main-content">
+            <div class="config-panel">
+                <div class="panel-header">
+                    <span class="panel-title">
+                        <span data-lang="zh" class="active">配置</span>
+                        <span data-lang="en">Configure</span>
+                    </span>
+                    <span class="panel-badge">
+                        <span data-lang="zh" class="active">人生周历</span>
+                        <span data-lang="en">Life Calendar</span>
+                    </span>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <span data-lang="zh" class="active">你的生日</span>
+                        <span data-lang="en">Your Birthday</span>
+                    </label>
+                    <input type="date" id="birthDate" value="1995-01-15">
+                    <div class="date-hint">
+                        <span data-lang="zh" class="active">格式：年-月-日</span>
+                        <span data-lang="en">Format: MM/DD/YYYY</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <span data-lang="zh" class="active">预期寿命（年）</span>
+                        <span data-lang="en">Life Expectancy (years)</span>
+                    </label>
+                    <input type="number" id="lifespan" value="80" min="50" max="120">
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <span data-lang="zh" class="active">分辨率</span>
+                        <span data-lang="en">Resolution</span>
+                    </label>
+                    <select id="resolution">
+                        <option value="2560x1600">MacBook Pro 14" (2560×1600)</option>
+                        <option value="2880x1800">MacBook Pro 16" (2880×1800)</option>
+                        <option value="2560x1664">MacBook Air 13" (2560×1664)</option>
+                        <option value="2880x1864">MacBook Air 15" (2880×1864)</option>
+                        <option value="5120x2880">Studio Display (5120×2880)</option>
+                        <option value="1920x1080">1080p (1920×1080)</option>
+                        <option value="3840x2160">4K (3840×2160)</option>
+                    </select>
+                </div>
+
+                <div class="color-row">
+                    <div class="form-group">
+                        <label>
+                            <span data-lang="zh" class="active">背景色</span>
+                            <span data-lang="en">Background</span>
+                        </label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="bgColor" value="#050505">
+                            <span class="color-value" id="bgColorValue">#050505</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <span data-lang="zh" class="active">强调色</span>
+                            <span data-lang="en">Accent</span>
+                        </label>
+                        <div class="color-input-wrapper">
+                            <input type="color" id="accentColor" value="#00ff88">
+                            <span class="color-value" id="accentColorValue">#00ff88</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="generate-btn" onclick="generateWallpaper()">
+                        <span data-lang="zh" class="active">生成壁纸</span>
+                        <span data-lang="en">Generate</span>
+                    </button>
+                    <button class="script-btn" onclick="openScriptModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                        </svg>
+                        <span data-lang="zh" class="active">获取自动化脚本</span>
+                        <span data-lang="en">Get Auto Script</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-header">
+                    <span class="preview-title">
+                        <span data-lang="zh" class="active">实时预览</span>
+                        <span data-lang="en">Live Preview</span>
+                    </span>
+                    <div class="preview-meta">
+                        <div class="live-indicator">
+                            <span class="live-dot"></span>
+                            LIVE
+                        </div>
+                        <span class="resolution-badge" id="resolutionBadge">2560 × 1600</span>
+                    </div>
+                </div>
+                
+                <div class="preview-container">
+                    <canvas id="wallpaperCanvas"></canvas>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="weeksLived">0</div>
+                        <div class="stat-label">
+                            <span data-lang="zh" class="active">已度过</span>
+                            <span data-lang="en">Lived</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="weeksLeft">0</div>
+                        <div class="stat-label">
+                            <span data-lang="zh" class="active">剩余</span>
+                            <span data-lang="en">Left</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="percentComplete">0%</div>
+                        <div class="stat-label">
+                            <span data-lang="zh" class="active">人生进度</span>
+                            <span data-lang="en">Complete</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="download-btn" onclick="downloadWallpaper()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    <span data-lang="zh" class="active">下载 PNG 壁纸</span>
+                    <span data-lang="en">Download PNG</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="setup-guide">
+            <div class="section-header">
+                <div class="section-label">
+                    <span data-lang="zh" class="active">设置指南</span>
+                    <span data-lang="en">Setup Guide</span>
+                </div>
+                <h2 class="section-title">
+                    <span data-lang="zh" class="active">选择你的设置方式</span>
+                    <span data-lang="en">Choose your setup method</span>
+                </h2>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="manual">
+                    <span data-lang="zh" class="active">手动设置</span>
+                    <span data-lang="en">Manual</span>
+                </button>
+                <button class="tab-btn" data-tab="auto">
+                    <span data-lang="zh" class="active">自动更新 ⚡</span>
+                    <span data-lang="en">Auto Update ⚡</span>
+                </button>
+            </div>
+
+            <div class="tab-content active" data-content="manual">
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">01</div>
+                        <h3>
+                            <span data-lang="zh" class="active">下载壁纸</span>
+                            <span data-lang="en">Download</span>
+                        </h3>
+                        <p>
+                            <span data-lang="zh" class="active">配置好参数后，点击「下载 PNG 壁纸」按钮保存文件。</span>
+                            <span data-lang="en">Configure your settings and click the download button to save the PNG file.</span>
+                        </p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">02</div>
+                        <h3>
+                            <span data-lang="zh" class="active">设置桌面</span>
+                            <span data-lang="en">Set Desktop</span>
+                        </h3>
+                        <p>
+                            <span data-lang="zh" class="active">右键点击桌面 → 更改桌面背景 → 选择下载的图片。</span>
+                            <span data-lang="en">Right-click desktop → Change Wallpaper → Select your downloaded image.</span>
+                        </p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">03</div>
+                        <h3>
+                            <span data-lang="zh" class="active">定期更新</span>
+                            <span data-lang="en">Update Weekly</span>
+                        </h3>
+                        <p>
+                            <span data-lang="zh" class="active">每周回来生成新壁纸，看着点一个个被填满。</span>
+                            <span data-lang="en">Come back weekly to generate a new wallpaper and watch the dots fill up.</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" data-content="auto">
+                <div class="steps">
+                    <div class="step">
+                        <div class="step-number">01</div>
+                        <h3>
+                            <span data-lang="zh" class="active">下载脚本</span>
+                            <span data-lang="en">Download Script</span>
+                        </h3>
+                        <p>
+                            <span data-lang="zh" class="active">点击上方「获取自动化脚本」按钮，下载包含你配置的脚本文件。</span>
+                            <span data-lang="en">Click "Get Auto Script" button above to download the script with your configuration.</span>
+                        </p>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">02</div>
+                        <h3>
+                            <span data-lang="zh" class="active">安装脚本</span>
+                            <span data-lang="en">Install Script</span>
+                        </h3>
+                        <p>
+                            <span data-lang="zh" class="active">打开终端，运行下载的安装脚本，它会自动配置定时任务。</span>
+                            <span data-lang="en">Open Terminal, run the downloaded install script. It will set up the scheduled task automatically.</span>
+                        </p>
+                        <div class="code-block">chmod +x ~/Downloads/dotlife-install.sh && ~/Downloads/dotlife-install.sh</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">03</div>
+                        <h3>
+                            <span data-lang="zh" class="active">自动运行</span>
+                            <span data-lang="en">Auto Run</span>
+                        </h3>
+                        <p>
+                            <span data-lang="zh" class="active">每周一早上 6 点，壁纸会自动更新。你也可以随时手动运行脚本。</span>
+                            <span data-lang="en">Every Monday at 6 AM, wallpaper updates automatically. You can also run the script manually anytime.</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="footer-content">
+                <div class="footer-author">
+                    <span data-lang="zh" class="active">Made by </span>
+                    <span data-lang="en">Made by </span>
+                    <a href="https://twitter.com/realdora_eth" target="_blank" rel="noopener">@realdora_eth</a>
+                </div>
+                <div class="footer-inspiration">
+                    <span data-lang="zh" class="active">灵感来自 </span>
+                    <span data-lang="en">Inspired by </span>
+                    <a href="https://lifegrid-wallpapers.pages.dev/" target="_blank" rel="noopener">LifeGrid</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 脚本模态框 -->
+    <div class="modal-overlay" id="scriptModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">
+                    <span data-lang="zh" class="active">自动化脚本</span>
+                    <span data-lang="en">Auto Script</span>
+                </span>
+                <button class="modal-close" onclick="closeScriptModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <h4>
+                        <span data-lang="zh" class="active">📦 这个脚本会做什么？</span>
+                        <span data-lang="en">📦 What does this script do?</span>
+                    </h4>
+                    <p>
+                        <span data-lang="zh" class="active">1. 在你的 Mac 上创建一个生成壁纸的 Python 脚本<br>2. 设置 macOS 定时任务，每周一早上 6 点自动运行<br>3. 自动将生成的壁纸设置为桌面背景</span>
+                        <span data-lang="en">1. Create a Python script on your Mac to generate wallpaper<br>2. Set up macOS scheduled task to run every Monday at 6 AM<br>3. Automatically set the generated wallpaper as desktop background</span>
+                    </p>
+                </div>
+                <div class="modal-section">
+                    <h4>
+                        <span data-lang="zh" class="active">📋 你的配置</span>
+                        <span data-lang="en">📋 Your Configuration</span>
+                    </h4>
+                    <div class="modal-code" id="configPreview"></div>
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-btn modal-btn-secondary" onclick="closeScriptModal()">
+                        <span data-lang="zh" class="active">取消</span>
+                        <span data-lang="en">Cancel</span>
+                    </button>
+                    <button class="modal-btn modal-btn-primary" onclick="downloadScript()">
+                        <span data-lang="zh" class="active">下载安装脚本</span>
+                        <span data-lang="en">Download Script</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let currentLang = 'zh';
+
+        // 关闭移动端提示
+        function closeMobileNotice() {
+            document.getElementById('mobileNotice').style.display = 'none';
+        }
+
+        // 语言切换
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.langBtn === lang);
+            });
+            document.querySelectorAll('[data-lang]').forEach(el => {
+                el.classList.toggle('active', el.dataset.lang === lang);
+            });
+            document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+            generateWallpaper();
+        }
+
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => setLanguage(btn.dataset.langBtn));
+        });
+
+        // 标签页切换
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelector(`[data-content="${btn.dataset.tab}"]`).classList.add('active');
+            });
+        });
+
+        // 粒子效果
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 8 + 's';
+                particle.style.animationDuration = (6 + Math.random() * 4) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // 表单事件
+        document.getElementById('bgColor').addEventListener('input', (e) => {
+            document.getElementById('bgColorValue').textContent = e.target.value;
+            generateWallpaper();
+        });
+        document.getElementById('accentColor').addEventListener('input', (e) => {
+            document.getElementById('accentColorValue').textContent = e.target.value;
+            generateWallpaper();
+        });
+        document.getElementById('birthDate').addEventListener('change', generateWallpaper);
+        document.getElementById('lifespan').addEventListener('change', generateWallpaper);
+        document.getElementById('resolution').addEventListener('change', (e) => {
+            const [w, h] = e.target.value.split('x');
+            document.getElementById('resolutionBadge').textContent = `${w} × ${h}`;
+            generateWallpaper();
+        });
+
+        function getWeeksLived(birthDate) {
+            const birth = new Date(birthDate);
+            const today = new Date();
+            return Math.max(0, Math.floor((today - birth) / (1000 * 60 * 60 * 24 * 7)));
+        }
+
+        function generateWallpaper() {
+            const canvas = document.getElementById('wallpaperCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const birthDate = document.getElementById('birthDate').value;
+            const lifespan = parseInt(document.getElementById('lifespan').value);
+            const resolution = document.getElementById('resolution').value;
+            const bgColor = document.getElementById('bgColor').value;
+            const accentColor = document.getElementById('accentColor').value;
+
+            const [width, height] = resolution.split('x').map(Number);
+            canvas.width = width;
+            canvas.height = height;
+
+            const totalWeeks = lifespan * 52;
+            const weeksLived = getWeeksLived(birthDate);
+            const weeksLeft = Math.max(0, totalWeeks - weeksLived);
+            const percentComplete = ((weeksLived / totalWeeks) * 100).toFixed(1);
+
+            document.getElementById('weeksLived').textContent = weeksLived.toLocaleString();
+            document.getElementById('weeksLeft').textContent = weeksLeft.toLocaleString();
+            document.getElementById('percentComplete').textContent = percentComplete + '%';
+
+            // 背景
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, width, height);
+
+            // 噪点
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const noise = (Math.random() - 0.5) * 255 * 0.015;
+                data[i] = Math.max(0, Math.min(255, data[i] + noise));
+                data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise));
+                data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise));
+            }
+            ctx.putImageData(imageData, 0, 0);
+
+            // 网格计算
+            const cols = 52;
+            const rows = lifespan;
+            const padding = Math.min(width, height) * 0.1;
+            const headerSpace = height * 0.12;
+            const availableWidth = width - padding * 2;
+            const availableHeight = height - padding * 2 - headerSpace;
+            
+            const cellSize = Math.min(
+                (availableWidth - (cols - 1) * 2) / cols,
+                (availableHeight - (rows - 1) * 2) / rows
+            );
+            const gap = Math.max(1, cellSize * 0.12);
+
+            const gridWidth = cols * cellSize + (cols - 1) * gap;
+            const gridHeight = rows * cellSize + (rows - 1) * gap;
+            const startX = (width - gridWidth) / 2;
+            const startY = padding + headerSpace;
+
+            // 标题
+            const titleText = currentLang === 'zh' ? '人生周历' : 'LIFE IN WEEKS';
+            ctx.fillStyle = accentColor;
+            ctx.font = `600 ${Math.round(width * 0.022)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText(titleText, width / 2, padding + headerSpace * 0.35);
+            
+            const subtitleText = currentLang === 'zh' 
+                ? `${weeksLived.toLocaleString()} 周已过 · ${weeksLeft.toLocaleString()} 周剩余 · ${percentComplete}%`
+                : `${weeksLived.toLocaleString()} lived · ${weeksLeft.toLocaleString()} left · ${percentComplete}%`;
+            ctx.fillStyle = '#666666';
+            ctx.font = `400 ${Math.round(width * 0.011)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.fillText(subtitleText, width / 2, padding + headerSpace * 0.65);
+
+            // 网格
+            const num = parseInt(bgColor.replace('#', ''), 16);
+            const r = Math.min(255, Math.max(0, (num >> 16) + 12));
+            const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + 12));
+            const b = Math.min(255, Math.max(0, (num & 0x0000FF) + 12));
+            const emptyColor = '#' + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
+            
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const weekIndex = row * 52 + col;
+                    const x = startX + col * (cellSize + gap);
+                    const y = startY + row * (cellSize + gap);
+                    
+                    ctx.fillStyle = weekIndex < weeksLived ? accentColor : emptyColor;
+                    
+                    // 使用圆形（点）而不是方形
+                    ctx.beginPath();
+                    ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // 年龄标记
+            ctx.fillStyle = '#333333';
+            ctx.font = `400 ${Math.round(width * 0.007)}px monospace`;
+            ctx.textAlign = 'right';
+            for (let age = 10; age <= lifespan; age += 10) {
+                const y = startY + (age - 1) * (cellSize + gap) + cellSize / 2 + 3;
+                ctx.fillText(age.toString(), startX - 8, y);
+            }
+        }
+
+        function downloadWallpaper() {
+            const canvas = document.getElementById('wallpaperCanvas');
+            const link = document.createElement('a');
+            link.download = `dotlife-${new Date().toISOString().split('T')[0]}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showToast(currentLang === 'zh' ? '壁纸已下载 ✓' : 'Wallpaper downloaded ✓');
+        }
+
+        // 模态框
+        function openScriptModal() {
+            const birthDate = document.getElementById('birthDate').value;
+            const config = {
+                birthDate: birthDate,
+                lifespan: document.getElementById('lifespan').value,
+                resolution: document.getElementById('resolution').value,
+                bgColor: document.getElementById('bgColor').value,
+                accentColor: document.getElementById('accentColor').value,
+                lang: currentLang
+            };
+            
+            // 格式化日期显示
+            const dateDisplay = currentLang === 'zh' 
+                ? birthDate 
+                : new Date(birthDate).toLocaleDateString('en-US');
+            
+            document.getElementById('configPreview').innerHTML = 
+`<span class="comment"># Your DotLife Configuration</span>
+BIRTH_DATE = <span class="string">"${config.birthDate}"</span>
+LIFESPAN = <span class="string">${config.lifespan}</span>
+RESOLUTION = <span class="string">"${config.resolution}"</span>
+BG_COLOR = <span class="string">"${config.bgColor}"</span>
+ACCENT_COLOR = <span class="string">"${config.accentColor}"</span>
+LANGUAGE = <span class="string">"${config.lang}"</span>`;
+            
+            document.getElementById('scriptModal').classList.add('active');
+        }
+
+        function closeScriptModal() {
+            document.getElementById('scriptModal').classList.remove('active');
+        }
+
+        document.getElementById('scriptModal').addEventListener('click', (e) => {
+            if (e.target.id === 'scriptModal') closeScriptModal();
+        });
+
+        function downloadScript() {
+            const config = {
+                birthDate: document.getElementById('birthDate').value,
+                lifespan: document.getElementById('lifespan').value,
+                resolution: document.getElementById('resolution').value,
+                bgColor: document.getElementById('bgColor').value,
+                accentColor: document.getElementById('accentColor').value,
+                lang: currentLang
+            };
+
+            const [width, height] = config.resolution.split('x');
+            
+            const script = `#!/bin/bash
+# DotLife Mac Auto Wallpaper Installer
+# Made by @realdora_eth
+# Generated with your configuration
+
+echo "🎨 DotLife Mac Installer"
+echo "========================"
+echo ""
+
+# Create directory
+DOTLIFE_DIR="$HOME/.dotlife"
+mkdir -p "$DOTLIFE_DIR"
+
+# Create Python script
+cat > "$DOTLIFE_DIR/generate_wallpaper.py" << 'PYTHON_SCRIPT'
+#!/usr/bin/env python3
+"""
+DotLife Mac - Auto Wallpaper Generator
+Made by @realdora_eth
+"""
+
+from datetime import datetime
+import subprocess
+import os
+
+# === YOUR CONFIGURATION ===
+BIRTH_DATE = "${config.birthDate}"
+LIFESPAN = ${config.lifespan}
+WIDTH = ${width}
+HEIGHT = ${height}
+BG_COLOR = "${config.bgColor}"
+ACCENT_COLOR = "${config.accentColor}"
+LANG = "${config.lang}"
+# ==========================
+
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+def adjust_brightness(hex_color, amount):
+    r, g, b = hex_to_rgb(hex_color)
+    r = max(0, min(255, r + amount))
+    g = max(0, min(255, g + amount))
+    b = max(0, min(255, b + amount))
+    return f'#{r:02x}{g:02x}{b:02x}'
+
+def get_weeks_lived():
+    birth = datetime.strptime(BIRTH_DATE, "%Y-%m-%d")
+    today = datetime.now()
+    return max(0, (today - birth).days // 7)
+
+def generate_svg():
+    weeks_lived = get_weeks_lived()
+    total_weeks = LIFESPAN * 52
+    weeks_left = max(0, total_weeks - weeks_lived)
+    percent = (weeks_lived / total_weeks * 100)
+    
+    cols = 52
+    rows = LIFESPAN
+    padding = min(WIDTH, HEIGHT) * 0.1
+    header_space = HEIGHT * 0.12
+    available_w = WIDTH - padding * 2
+    available_h = HEIGHT - padding * 2 - header_space
+    
+    cell_size = min(
+        (available_w - (cols - 1) * 2) / cols,
+        (available_h - (rows - 1) * 2) / rows
+    )
+    gap = max(1, cell_size * 0.12)
+    
+    grid_w = cols * cell_size + (cols - 1) * gap
+    grid_h = rows * cell_size + (rows - 1) * gap
+    start_x = (WIDTH - grid_w) / 2
+    start_y = padding + header_space
+    
+    empty_color = adjust_brightness(BG_COLOR, 12)
+    
+    title = "人生周历" if LANG == "zh" else "LIFE IN WEEKS"
+    if LANG == "zh":
+        subtitle = f"{weeks_lived:,} 周已过 · {weeks_left:,} 周剩余 · {percent:.1f}%"
+    else:
+        subtitle = f"{weeks_lived:,} lived · {weeks_left:,} left · {percent:.1f}%"
+    
+    svg = f'''<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="{WIDTH}" height="{HEIGHT}" viewBox="0 0 {WIDTH} {HEIGHT}">
+  <rect width="{WIDTH}" height="{HEIGHT}" fill="{BG_COLOR}"/>
+  <text x="{WIDTH/2}" y="{padding + header_space * 0.35}" 
+        font-family="-apple-system, BlinkMacSystemFont, sans-serif" 
+        font-size="{WIDTH * 0.022}" font-weight="600" fill="{ACCENT_COLOR}" 
+        text-anchor="middle">{title}</text>
+  <text x="{WIDTH/2}" y="{padding + header_space * 0.65}" 
+        font-family="-apple-system, BlinkMacSystemFont, sans-serif" 
+        font-size="{WIDTH * 0.011}" fill="#666666" 
+        text-anchor="middle">{subtitle}</text>
+'''
+    
+    for row in range(rows):
+        for col in range(cols):
+            week_idx = row * 52 + col
+            cx = start_x + col * (cell_size + gap) + cell_size / 2
+            cy = start_y + row * (cell_size + gap) + cell_size / 2
+            r = cell_size / 2
+            color = ACCENT_COLOR if week_idx < weeks_lived else empty_color
+            svg += f'  <circle cx="{cx}" cy="{cy}" r="{r}" fill="{color}"/>\\n'
+    
+    for age in range(10, LIFESPAN + 1, 10):
+        y = start_y + (age - 1) * (cell_size + gap) + cell_size / 2 + 3
+        svg += f'  <text x="{start_x - 8}" y="{y}" font-family="monospace" font-size="{WIDTH * 0.007}" fill="#333333" text-anchor="end">{age}</text>\\n'
+    
+    svg += '</svg>'
+    return svg
+
+def main():
+    dotlife_dir = os.path.expanduser("~/.dotlife")
+    svg_path = os.path.join(dotlife_dir, "wallpaper.svg")
+    png_path = os.path.join(dotlife_dir, "wallpaper.png")
+    
+    svg_content = generate_svg()
+    with open(svg_path, 'w') as f:
+        f.write(svg_content)
+    
+    try:
+        subprocess.run([
+            'qlmanage', '-t', '-s', str(max(${width}, ${height})), 
+            '-o', dotlife_dir, svg_path
+        ], capture_output=True)
+        
+        temp_png = os.path.join(dotlife_dir, "wallpaper.svg.png")
+        if os.path.exists(temp_png):
+            os.rename(temp_png, png_path)
+    except Exception as e:
+        print(f"Conversion error: {e}")
+        png_path = svg_path
+    
+    script = f'''
+    tell application "System Events"
+        tell every desktop
+            set picture to "{png_path}"
+        end tell
+    end tell
+    '''
+    subprocess.run(['osascript', '-e', script])
+    print(f"✓ Wallpaper updated: {png_path}")
+
+if __name__ == "__main__":
+    main()
+PYTHON_SCRIPT
+
+chmod +x "$DOTLIFE_DIR/generate_wallpaper.py"
+
+# Create LaunchAgent
+PLIST_PATH="$HOME/Library/LaunchAgents/com.dotlife.wallpaper.plist"
+
+cat > "$PLIST_PATH" << PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.dotlife.wallpaper</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>$DOTLIFE_DIR/generate_wallpaper.py</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>1</integer>
+        <key>Hour</key>
+        <integer>6</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+PLIST
+
+launchctl unload "$PLIST_PATH" 2>/dev/null
+launchctl load "$PLIST_PATH"
+
+echo ""
+echo "⏳ Generating your first wallpaper..."
+python3 "$DOTLIFE_DIR/generate_wallpaper.py"
+
+echo ""
+echo "✅ Installation complete!"
+echo ""
+echo "📍 Files installed:"
+echo "   Script: $DOTLIFE_DIR/generate_wallpaper.py"
+echo "   LaunchAgent: $PLIST_PATH"
+echo ""
+echo "🔄 Auto-update: Every Monday at 6:00 AM"
+echo ""
+echo "💡 Manual update anytime:"
+echo "   python3 ~/.dotlife/generate_wallpaper.py"
+echo ""
+echo "🗑️  To uninstall:"
+echo "   launchctl unload ~/Library/LaunchAgents/com.dotlife.wallpaper.plist"
+echo "   rm -rf ~/.dotlife"
+echo "   rm ~/Library/LaunchAgents/com.dotlife.wallpaper.plist"
+echo ""
+echo "Made by @realdora_eth"
+`;
+
+            const blob = new Blob([script], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'dotlife-install.sh';
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            closeScriptModal();
+            showToast(currentLang === 'zh' ? '脚本已下载 ✓' : 'Script downloaded ✓');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // 初始化
+        window.onload = () => {
+            createParticles();
+            generateWallpaper();
+        };
+    </script>
+</body>
+</html>
