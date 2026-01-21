@@ -7,7 +7,7 @@
     <meta name="description" content="Generate your personal life calendar wallpaper for Mac. Every week is a dot. 生成专属于你的人生周历壁纸。">
     <meta name="author" content="@realdora_eth">
     
-    <!-- Favicon - 内嵌 SVG -->
+    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23050505'/><circle cx='10' cy='10' r='3' fill='%2300ff88'/><circle cx='22' cy='10' r='3' fill='%2300ff88'/><circle cx='10' cy='22' r='3' fill='%2300ff88'/><circle cx='22' cy='22' r='3' fill='%23222'/></svg>">
     
     <!-- Open Graph -->
@@ -92,6 +92,7 @@
             cursor: pointer;
             padding: 4px;
             line-height: 1;
+            flex-shrink: 0;
         }
 
         .mobile-notice-close:hover {
@@ -561,17 +562,17 @@
         .preview-container {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
-            padding: 30px;
+            padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 450px;
+            min-height: 400px;
             position: relative;
             overflow: hidden;
         }
 
         @media (max-width: 768px) {
-            .preview-container { padding: 15px; min-height: 300px; }
+            .preview-container { padding: 15px; min-height: 250px; }
         }
 
         .preview-container::before {
@@ -633,6 +634,13 @@
             font-size: 26px;
             color: var(--accent);
             margin-bottom: 6px;
+        }
+
+        .stat-unit {
+            font-size: 14px;
+            color: var(--accent);
+            opacity: 0.7;
+            margin-left: 4px;
         }
 
         .stat-label {
@@ -790,6 +798,113 @@
             overflow-x: auto;
             white-space: pre-wrap;
             word-break: break-all;
+        }
+
+        /* FAQ 区域 */
+        .faq-section {
+            margin-top: 60px;
+        }
+
+        .faq-list {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            border: 1px solid var(--border);
+            margin-bottom: 12px;
+            background: var(--bg-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .faq-item:hover {
+            border-color: var(--text-tertiary);
+        }
+
+        .faq-question {
+            width: 100%;
+            padding: 20px 25px;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .faq-question:hover {
+            color: var(--accent);
+        }
+
+        .faq-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Space Mono', monospace;
+            font-size: 18px;
+            color: var(--accent);
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .faq-item.active .faq-icon {
+            transform: rotate(45deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+        }
+
+        .faq-answer-content {
+            padding: 0 25px 25px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .faq-answer-content p {
+            margin-bottom: 12px;
+        }
+
+        .faq-answer-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .faq-answer-content strong {
+            color: var(--text-primary);
+        }
+
+        .faq-answer-content code {
+            background: var(--bg-primary);
+            padding: 3px 8px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--accent);
+            border: 1px solid var(--border);
+        }
+
+        .faq-answer-content ol {
+            padding-left: 20px;
+            margin: 12px 0;
+        }
+
+        .faq-answer-content li {
+            margin-bottom: 8px;
         }
 
         /* 模态框 */
@@ -1152,14 +1267,22 @@
 
                 <div class="stats">
                     <div class="stat-item">
-                        <div class="stat-value" id="weeksLived">0</div>
+                        <div class="stat-value">
+                            <span id="weeksLived">0</span>
+                            <span class="stat-unit" data-lang="zh">周</span>
+                            <span class="stat-unit" data-lang="en">w</span>
+                        </div>
                         <div class="stat-label">
                             <span data-lang="zh" class="active">已度过</span>
                             <span data-lang="en">Lived</span>
                         </div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" id="weeksLeft">0</div>
+                        <div class="stat-value">
+                            <span id="weeksLeft">0</span>
+                            <span class="stat-unit" data-lang="zh">周</span>
+                            <span class="stat-unit" data-lang="en">w</span>
+                        </div>
                         <div class="stat-label">
                             <span data-lang="zh" class="active">剩余</span>
                             <span data-lang="en">Left</span>
@@ -1285,6 +1408,186 @@
                     </div>
                 </div>
             </div>
+
+            <!-- FAQ 区域 -->
+            <div class="faq-section">
+                <div class="section-header">
+                    <div class="section-label">FAQ</div>
+                    <h2 class="section-title">
+                        <span data-lang="zh" class="active">常见问题</span>
+                        <span data-lang="en">Frequently Asked Questions</span>
+                    </h2>
+                </div>
+
+                <div class="faq-list">
+                    <!-- FAQ 1 -->
+                    <div class="faq-item">
+                        <button class="faq-question" onclick="toggleFaq(this)">
+                            <span>
+                                <span data-lang="zh" class="active">下载后如何设置成桌面壁纸？</span>
+                                <span data-lang="en">How do I set it as my desktop wallpaper?</span>
+                            </span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p data-lang="zh" class="active">
+                                    <strong>方法一：右键设置</strong><br>
+                                    在 Finder 中找到下载的图片 → 右键点击 → 选择「设定桌面图片」
+                                </p>
+                                <p data-lang="en">
+                                    <strong>Method 1: Right-click</strong><br>
+                                    Find the downloaded image in Finder → Right-click → Select "Set Desktop Picture"
+                                </p>
+                                <p data-lang="zh" class="active">
+                                    <strong>方法二：系统设置</strong><br>
+                                    系统设置 → 墙纸 → 点击「添加照片」或将图片拖入 → 选择下载的图片
+                                </p>
+                                <p data-lang="en">
+                                    <strong>Method 2: System Settings</strong><br>
+                                    System Settings → Wallpaper → Click "Add Photo" or drag the image → Select your downloaded image
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 2 -->
+                    <div class="faq-item">
+                        <button class="faq-question" onclick="toggleFaq(this)">
+                            <span>
+                                <span data-lang="zh" class="active">如何设置成锁屏壁纸？</span>
+                                <span data-lang="en">How do I set it as my lock screen?</span>
+                            </span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p data-lang="zh" class="active">
+                                    系统设置 → 锁定屏幕 → 在左侧选择你的锁屏预览 → 点击「添加照片」→ 选择下载的壁纸图片
+                                </p>
+                                <p data-lang="en">
+                                    System Settings → Lock Screen → Select your lock screen preview on the left → Click "Add Photo" → Select your downloaded wallpaper
+                                </p>
+                                <p data-lang="zh" class="active">
+                                    <strong>提示：</strong>macOS Sonoma 及以上版本支持桌面和锁屏使用不同壁纸。
+                                </p>
+                                <p data-lang="en">
+                                    <strong>Tip:</strong> macOS Sonoma and later supports different wallpapers for desktop and lock screen.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 3 -->
+                    <div class="faq-item">
+                        <button class="faq-question" onclick="toggleFaq(this)">
+                            <span>
+                                <span data-lang="zh" class="active">自动化脚本安全吗？</span>
+                                <span data-lang="en">Is the automation script safe?</span>
+                            </span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p data-lang="zh" class="active">
+                                    <strong>是的，完全安全。</strong>脚本是开源的，你可以在运行前用任何文本编辑器查看全部代码。
+                                </p>
+                                <p data-lang="en">
+                                    <strong>Yes, completely safe.</strong> The script is open source. You can view all the code in any text editor before running it.
+                                </p>
+                                <p data-lang="zh" class="active">
+                                    脚本只会：<br>
+                                    • 在 <code>~/.dotlife/</code> 目录创建本地文件<br>
+                                    • 设置一个系统定时任务<br>
+                                    • 更改你的桌面壁纸<br><br>
+                                    <strong>脚本不会：</strong>上传任何数据、访问网络、修改其他系统文件
+                                </p>
+                                <p data-lang="en">
+                                    The script only:<br>
+                                    • Creates local files in <code>~/.dotlife/</code> directory<br>
+                                    • Sets up a system scheduled task<br>
+                                    • Changes your desktop wallpaper<br><br>
+                                    <strong>The script does NOT:</strong> upload any data, access the network, or modify other system files
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 4 -->
+                    <div class="faq-item">
+                        <button class="faq-question" onclick="toggleFaq(this)">
+                            <span>
+                                <span data-lang="zh" class="active">下载脚本后，如何运行？</span>
+                                <span data-lang="en">How do I run the script after downloading?</span>
+                            </span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p data-lang="zh" class="active">
+                                    不用担心，你不需要懂 Python！只需要按照以下步骤操作：
+                                </p>
+                                <p data-lang="en">
+                                    Don't worry, you don't need to know Python! Just follow these steps:
+                                </p>
+                                <ol>
+                                    <li data-lang="zh" class="active">
+                                        <strong>打开终端</strong>：按 <code>Command + 空格</code>，输入「终端」或「Terminal」，回车
+                                    </li>
+                                    <li data-lang="en">
+                                        <strong>Open Terminal</strong>: Press <code>Command + Space</code>, type "Terminal", press Enter
+                                    </li>
+                                    <li data-lang="zh" class="active">
+                                        <strong>复制这行命令</strong>：<br><code>chmod +x ~/Downloads/dotlife-install.sh && ~/Downloads/dotlife-install.sh</code>
+                                    </li>
+                                    <li data-lang="en">
+                                        <strong>Copy this command</strong>:<br><code>chmod +x ~/Downloads/dotlife-install.sh && ~/Downloads/dotlife-install.sh</code>
+                                    </li>
+                                    <li data-lang="zh" class="active">
+                                        <strong>粘贴并回车</strong>：在终端窗口中粘贴（Command + V），然后按回车
+                                    </li>
+                                    <li data-lang="en">
+                                        <strong>Paste and Enter</strong>: Paste in Terminal (Command + V), then press Enter
+                                    </li>
+                                    <li data-lang="zh" class="active">
+                                        <strong>完成！</strong>脚本会自动安装并生成你的第一张壁纸
+                                    </li>
+                                    <li data-lang="en">
+                                        <strong>Done!</strong> The script will auto-install and generate your first wallpaper
+                                    </li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 5 -->
+                    <div class="faq-item">
+                        <button class="faq-question" onclick="toggleFaq(this)">
+                            <span>
+                                <span data-lang="zh" class="active">支持 Windows 吗？</span>
+                                <span data-lang="en">Does it support Windows?</span>
+                            </span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p data-lang="zh" class="active">
+                                    <strong>暂不支持。</strong>DotLife 目前专为 macOS 设计。
+                                </p>
+                                <p data-lang="en">
+                                    <strong>Not yet.</strong> DotLife is currently designed for macOS only.
+                                </p>
+                                <p data-lang="zh" class="active">
+                                    不过，你仍然可以在网页上生成壁纸图片，然后手动下载并在 Windows 上设置为桌面背景。只是自动化脚本功能暂时无法使用。
+                                </p>
+                                <p data-lang="en">
+                                    However, you can still generate wallpaper images on this website, download them manually, and set them as your desktop background on Windows. The automation script feature is not available for Windows at this time.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <footer>
@@ -1350,6 +1653,18 @@
 
     <script>
         let currentLang = 'zh';
+
+        // FAQ 折叠
+        function toggleFaq(button) {
+            const item = button.parentElement;
+            const wasActive = item.classList.contains('active');
+            
+            document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+            
+            if (!wasActive) {
+                item.classList.add('active');
+            }
+        }
 
         // 关闭移动端提示
         function closeMobileNotice() {
@@ -1457,55 +1772,61 @@
             }
             ctx.putImageData(imageData, 0, 0);
 
-            // 网格计算
+            // 网格参数 - 更横向的布局
             const cols = 52;
             const rows = lifespan;
-            const padding = Math.min(width, height) * 0.1;
-            const headerSpace = height * 0.12;
-            const availableWidth = width - padding * 2;
-            const availableHeight = height - padding * 2 - headerSpace;
             
-            const cellSize = Math.min(
-                (availableWidth - (cols - 1) * 2) / cols,
-                (availableHeight - (rows - 1) * 2) / rows
-            );
-            const gap = Math.max(1, cellSize * 0.12);
+            // 减少 padding，让网格更宽
+            const paddingX = width * 0.05;
+            const paddingY = height * 0.08;
+            const headerSpace = height * 0.1;
+            const labelSpace = width * 0.03; // 左侧年龄标签空间
+            
+            const availableWidth = width - paddingX * 2 - labelSpace;
+            const availableHeight = height - paddingY * 2 - headerSpace;
+            
+            // 计算点的大小和间距
+            const maxCellWidth = availableWidth / cols;
+            const maxCellHeight = availableHeight / rows;
+            const cellSize = Math.min(maxCellWidth, maxCellHeight) * 0.75;
+            const gapX = (availableWidth - cellSize * cols) / (cols - 1);
+            const gapY = (availableHeight - cellSize * rows) / (rows - 1);
 
-            const gridWidth = cols * cellSize + (cols - 1) * gap;
-            const gridHeight = rows * cellSize + (rows - 1) * gap;
-            const startX = (width - gridWidth) / 2;
-            const startY = padding + headerSpace;
+            const gridWidth = cols * cellSize + (cols - 1) * gapX;
+            const gridHeight = rows * cellSize + (rows - 1) * gapY;
+            const startX = paddingX + labelSpace + (availableWidth - gridWidth) / 2;
+            const startY = paddingY + headerSpace;
 
             // 标题
             const titleText = currentLang === 'zh' ? '人生周历' : 'LIFE IN WEEKS';
             ctx.fillStyle = accentColor;
-            ctx.font = `600 ${Math.round(width * 0.022)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.font = `600 ${Math.round(width * 0.025)}px -apple-system, BlinkMacSystemFont, sans-serif`;
             ctx.textAlign = 'center';
-            ctx.fillText(titleText, width / 2, padding + headerSpace * 0.35);
+            ctx.fillText(titleText, width / 2, paddingY + headerSpace * 0.4);
             
             const subtitleText = currentLang === 'zh' 
                 ? `${weeksLived.toLocaleString()} 周已过 · ${weeksLeft.toLocaleString()} 周剩余 · ${percentComplete}%`
                 : `${weeksLived.toLocaleString()} lived · ${weeksLeft.toLocaleString()} left · ${percentComplete}%`;
             ctx.fillStyle = '#666666';
             ctx.font = `400 ${Math.round(width * 0.011)}px -apple-system, BlinkMacSystemFont, sans-serif`;
-            ctx.fillText(subtitleText, width / 2, padding + headerSpace * 0.65);
+            ctx.fillText(subtitleText, width / 2, paddingY + headerSpace * 0.7);
 
-            // 网格
+            // 计算空点颜色
             const num = parseInt(bgColor.replace('#', ''), 16);
-            const r = Math.min(255, Math.max(0, (num >> 16) + 12));
-            const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + 12));
-            const b = Math.min(255, Math.max(0, (num & 0x0000FF) + 12));
+            const r = Math.min(255, Math.max(0, (num >> 16) + 15));
+            const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + 15));
+            const b = Math.min(255, Math.max(0, (num & 0x0000FF) + 15));
             const emptyColor = '#' + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
-            
+
+            // 绘制圆点网格
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
                     const weekIndex = row * 52 + col;
-                    const x = startX + col * (cellSize + gap);
-                    const y = startY + row * (cellSize + gap);
+                    const x = startX + col * (cellSize + gapX);
+                    const y = startY + row * (cellSize + gapY);
                     
                     ctx.fillStyle = weekIndex < weeksLived ? accentColor : emptyColor;
                     
-                    // 使用圆形（点）而不是方形
                     ctx.beginPath();
                     ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2, 0, Math.PI * 2);
                     ctx.fill();
@@ -1513,12 +1834,12 @@
             }
 
             // 年龄标记
-            ctx.fillStyle = '#333333';
-            ctx.font = `400 ${Math.round(width * 0.007)}px monospace`;
+            ctx.fillStyle = '#444444';
+            ctx.font = `400 ${Math.round(width * 0.008)}px monospace`;
             ctx.textAlign = 'right';
             for (let age = 10; age <= lifespan; age += 10) {
-                const y = startY + (age - 1) * (cellSize + gap) + cellSize / 2 + 3;
-                ctx.fillText(age.toString(), startX - 8, y);
+                const y = startY + (age - 1) * (cellSize + gapY) + cellSize / 2 + 3;
+                ctx.fillText(age.toString(), startX - 10, y);
             }
         }
 
@@ -1542,11 +1863,6 @@
                 accentColor: document.getElementById('accentColor').value,
                 lang: currentLang
             };
-            
-            // 格式化日期显示
-            const dateDisplay = currentLang === 'zh' 
-                ? birthDate 
-                : new Date(birthDate).toLocaleDateString('en-US');
             
             document.getElementById('configPreview').innerHTML = 
 `<span class="comment"># Your DotLife Configuration</span>
@@ -1583,17 +1899,14 @@ LANGUAGE = <span class="string">"${config.lang}"</span>`;
             const script = `#!/bin/bash
 # DotLife Mac Auto Wallpaper Installer
 # Made by @realdora_eth
-# Generated with your configuration
 
 echo "🎨 DotLife Mac Installer"
 echo "========================"
 echo ""
 
-# Create directory
 DOTLIFE_DIR="$HOME/.dotlife"
 mkdir -p "$DOTLIFE_DIR"
 
-# Create Python script
 cat > "$DOTLIFE_DIR/generate_wallpaper.py" << 'PYTHON_SCRIPT'
 #!/usr/bin/env python3
 """
@@ -1604,6 +1917,7 @@ Made by @realdora_eth
 from datetime import datetime
 import subprocess
 import os
+import math
 
 # === YOUR CONFIGURATION ===
 BIRTH_DATE = "${config.birthDate}"
@@ -1639,23 +1953,27 @@ def generate_svg():
     
     cols = 52
     rows = LIFESPAN
-    padding = min(WIDTH, HEIGHT) * 0.1
-    header_space = HEIGHT * 0.12
-    available_w = WIDTH - padding * 2
-    available_h = HEIGHT - padding * 2 - header_space
     
-    cell_size = min(
-        (available_w - (cols - 1) * 2) / cols,
-        (available_h - (rows - 1) * 2) / rows
-    )
-    gap = max(1, cell_size * 0.12)
+    padding_x = WIDTH * 0.05
+    padding_y = HEIGHT * 0.08
+    header_space = HEIGHT * 0.1
+    label_space = WIDTH * 0.03
     
-    grid_w = cols * cell_size + (cols - 1) * gap
-    grid_h = rows * cell_size + (rows - 1) * gap
-    start_x = (WIDTH - grid_w) / 2
-    start_y = padding + header_space
+    available_w = WIDTH - padding_x * 2 - label_space
+    available_h = HEIGHT - padding_y * 2 - header_space
     
-    empty_color = adjust_brightness(BG_COLOR, 12)
+    max_cell_w = available_w / cols
+    max_cell_h = available_h / rows
+    cell_size = min(max_cell_w, max_cell_h) * 0.75
+    gap_x = (available_w - cell_size * cols) / (cols - 1) if cols > 1 else 0
+    gap_y = (available_h - cell_size * rows) / (rows - 1) if rows > 1 else 0
+    
+    grid_w = cols * cell_size + (cols - 1) * gap_x
+    grid_h = rows * cell_size + (rows - 1) * gap_y
+    start_x = padding_x + label_space + (available_w - grid_w) / 2
+    start_y = padding_y + header_space
+    
+    empty_color = adjust_brightness(BG_COLOR, 15)
     
     title = "人生周历" if LANG == "zh" else "LIFE IN WEEKS"
     if LANG == "zh":
@@ -1666,11 +1984,11 @@ def generate_svg():
     svg = f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="{WIDTH}" height="{HEIGHT}" viewBox="0 0 {WIDTH} {HEIGHT}">
   <rect width="{WIDTH}" height="{HEIGHT}" fill="{BG_COLOR}"/>
-  <text x="{WIDTH/2}" y="{padding + header_space * 0.35}" 
+  <text x="{WIDTH/2}" y="{padding_y + header_space * 0.4}" 
         font-family="-apple-system, BlinkMacSystemFont, sans-serif" 
-        font-size="{WIDTH * 0.022}" font-weight="600" fill="{ACCENT_COLOR}" 
+        font-size="{WIDTH * 0.025}" font-weight="600" fill="{ACCENT_COLOR}" 
         text-anchor="middle">{title}</text>
-  <text x="{WIDTH/2}" y="{padding + header_space * 0.65}" 
+  <text x="{WIDTH/2}" y="{padding_y + header_space * 0.7}" 
         font-family="-apple-system, BlinkMacSystemFont, sans-serif" 
         font-size="{WIDTH * 0.011}" fill="#666666" 
         text-anchor="middle">{subtitle}</text>
@@ -1679,15 +1997,15 @@ def generate_svg():
     for row in range(rows):
         for col in range(cols):
             week_idx = row * 52 + col
-            cx = start_x + col * (cell_size + gap) + cell_size / 2
-            cy = start_y + row * (cell_size + gap) + cell_size / 2
+            cx = start_x + col * (cell_size + gap_x) + cell_size / 2
+            cy = start_y + row * (cell_size + gap_y) + cell_size / 2
             r = cell_size / 2
             color = ACCENT_COLOR if week_idx < weeks_lived else empty_color
             svg += f'  <circle cx="{cx}" cy="{cy}" r="{r}" fill="{color}"/>\\n'
     
     for age in range(10, LIFESPAN + 1, 10):
-        y = start_y + (age - 1) * (cell_size + gap) + cell_size / 2 + 3
-        svg += f'  <text x="{start_x - 8}" y="{y}" font-family="monospace" font-size="{WIDTH * 0.007}" fill="#333333" text-anchor="end">{age}</text>\\n'
+        y = start_y + (age - 1) * (cell_size + gap_y) + cell_size / 2 + 3
+        svg += f'  <text x="{start_x - 10}" y="{y}" font-family="monospace" font-size="{WIDTH * 0.008}" fill="#444444" text-anchor="end">{age}</text>\\n'
     
     svg += '</svg>'
     return svg
@@ -1730,7 +2048,6 @@ PYTHON_SCRIPT
 
 chmod +x "$DOTLIFE_DIR/generate_wallpaper.py"
 
-# Create LaunchAgent
 PLIST_PATH="$HOME/Library/LaunchAgents/com.dotlife.wallpaper.plist"
 
 cat > "$PLIST_PATH" << PLIST
@@ -1806,7 +2123,6 @@ echo "Made by @realdora_eth"
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // 初始化
         window.onload = () => {
             createParticles();
             generateWallpaper();
