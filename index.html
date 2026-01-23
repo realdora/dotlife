@@ -8,7 +8,7 @@
     <meta name="author" content="@realdora_eth">
     
     <!-- Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23050505'/><circle cx='10' cy='10' r='3' fill='%2300ff88'/><circle cx='22' cy='10' r='3' fill='%2300ff88'/><circle cx='10' cy='22' r='3' fill='%2300ff88'/><circle cx='22' cy='22' r='3' fill='%23222'/></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230a0a0a'/><rect x='6' y='6' width='8' height='8' rx='2' fill='%23e5e5e5'/><rect x='18' y='6' width='8' height='8' rx='2' fill='%23e5e5e5'/><rect x='6' y='18' width='8' height='8' rx='2' fill='%23e5e5e5'/><rect x='18' y='18' width='8' height='8' rx='2' fill='%231f1f1f'/></svg>">
     
     <!-- Open Graph -->
     <meta property="og:title" content="DotLife - Life Calendar Wallpaper">
@@ -22,16 +22,16 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg-primary: #050505;
-            --bg-secondary: #0d0d0d;
-            --bg-tertiary: #161616;
-            --text-primary: #ffffff;
-            --text-secondary: #555555;
-            --text-tertiary: #333333;
-            --accent: #00ff88;
-            --accent-dim: rgba(0, 255, 136, 0.1);
-            --accent-glow: rgba(0, 255, 136, 0.3);
-            --border: #1a1a1a;
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #111111;
+            --bg-tertiary: #1a1a1a;
+            --text-primary: #e5e5e5;
+            --text-secondary: #666666;
+            --text-tertiary: #444444;
+            --accent: #e5e5e5;
+            --accent-dim: rgba(229, 229, 229, 0.1);
+            --accent-glow: rgba(229, 229, 229, 0.2);
+            --border: #222222;
         }
 
         body {
@@ -217,7 +217,7 @@
 
         .logo-icon span {
             background: var(--accent);
-            border-radius: 50%;
+            border-radius: 2px;
             animation: logoPulse 2s ease-in-out infinite;
         }
 
@@ -1215,8 +1215,8 @@
                             <span data-lang="en">Background</span>
                         </label>
                         <div class="color-input-wrapper">
-                            <input type="color" id="bgColor" value="#050505">
-                            <span class="color-value" id="bgColorValue">#050505</span>
+                            <input type="color" id="bgColor" value="#0a0a0a">
+                            <span class="color-value" id="bgColorValue">#0a0a0a</span>
                         </div>
                     </div>
                     <div class="form-group">
@@ -1225,8 +1225,8 @@
                             <span data-lang="en">Accent</span>
                         </label>
                         <div class="color-input-wrapper">
-                            <input type="color" id="accentColor" value="#00ff88">
-                            <span class="color-value" id="accentColorValue">#00ff88</span>
+                            <input type="color" id="accentColor" value="#e5e5e5">
+                            <span class="color-value" id="accentColorValue">#e5e5e5</span>
                         </div>
                     </div>
                 </div>
@@ -1818,7 +1818,7 @@
             const b = Math.min(255, Math.max(0, (num & 0x0000FF) + 15));
             const emptyColor = '#' + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
 
-            // 绘制圆点网格
+            // 绘制圆角方块网格
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
                     const weekIndex = row * 52 + col;
@@ -1827,8 +1827,19 @@
                     
                     ctx.fillStyle = weekIndex < weeksLived ? accentColor : emptyColor;
                     
+                    // 圆角方块
+                    const radius = cellSize * 0.25;
                     ctx.beginPath();
-                    ctx.arc(x + cellSize / 2, y + cellSize / 2, cellSize / 2, 0, Math.PI * 2);
+                    ctx.moveTo(x + radius, y);
+                    ctx.lineTo(x + cellSize - radius, y);
+                    ctx.quadraticCurveTo(x + cellSize, y, x + cellSize, y + radius);
+                    ctx.lineTo(x + cellSize, y + cellSize - radius);
+                    ctx.quadraticCurveTo(x + cellSize, y + cellSize, x + cellSize - radius, y + cellSize);
+                    ctx.lineTo(x + radius, y + cellSize);
+                    ctx.quadraticCurveTo(x, y + cellSize, x, y + cellSize - radius);
+                    ctx.lineTo(x, y + radius);
+                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                    ctx.closePath();
                     ctx.fill();
                 }
             }
