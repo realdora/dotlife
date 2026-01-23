@@ -505,6 +505,21 @@
             transform: translateY(-2px);
         }
 
+        .padding-custom {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .padding-custom .color-row {
+            margin-bottom: 0;
+        }
+
+        .padding-custom .form-group {
+            margin-bottom: 0;
+        }
+
         /* 预览区 */
         .preview-section { display: flex; flex-direction: column; }
 
@@ -1231,6 +1246,51 @@
                     </div>
                 </div>
 
+                <div class="form-group">
+                    <label>
+                        <span data-lang="zh" class="active">形状</span>
+                        <span data-lang="en">Shape</span>
+                    </label>
+                    <select id="shape">
+                        <option value="circle">● 圆形 / Circle</option>
+                        <option value="rounded" selected>▢ 圆角方块 / Rounded</option>
+                        <option value="square">■ 方块 / Square</option>
+                        <option value="diamond">◆ 菱形 / Diamond</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <span data-lang="zh" class="active">边距预设</span>
+                        <span data-lang="en">Padding Preset</span>
+                    </label>
+                    <select id="paddingPreset">
+                        <option value="notch">刘海屏 Mac / Notch Mac</option>
+                        <option value="standard" selected>标准 / Standard</option>
+                        <option value="hidden">隐藏菜单栏 / Hidden Menu Bar</option>
+                        <option value="custom">自定义 / Custom</option>
+                    </select>
+                </div>
+
+                <div class="padding-custom" id="paddingCustom" style="display: none;">
+                    <div class="color-row">
+                        <div class="form-group">
+                            <label>
+                                <span data-lang="zh" class="active">顶部 %</span>
+                                <span data-lang="en">Top %</span>
+                            </label>
+                            <input type="number" id="paddingTop" value="12" min="0" max="30">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <span data-lang="zh" class="active">底部 %</span>
+                                <span data-lang="en">Bottom %</span>
+                            </label>
+                            <input type="number" id="paddingBottom" value="5" min="0" max="30">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="btn-group">
                     <button class="generate-btn" onclick="generateWallpaper()">
                         <span data-lang="zh" class="active">生成壁纸</span>
@@ -1586,6 +1646,78 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- FAQ 6 -->
+                    <div class="faq-item">
+                        <button class="faq-question" onclick="toggleFaq(this)">
+                            <span>
+                                <span data-lang="zh" class="active">如何卸载自动化脚本？</span>
+                                <span data-lang="en">How do I uninstall the automation script?</span>
+                            </span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p data-lang="zh" class="active">
+                                    打开终端，运行以下三行命令：
+                                </p>
+                                <p data-lang="en">
+                                    Open Terminal and run these three commands:
+                                </p>
+                                <div class="code-block">launchctl unload ~/Library/LaunchAgents/com.dotlife.wallpaper.plist
+rm -rf ~/.dotlife
+rm ~/Library/LaunchAgents/com.dotlife.wallpaper.plist</div>
+                                <p data-lang="zh" class="active">
+                                    <strong>作用：</strong><br>
+                                    • 第一行：停止定时任务<br>
+                                    • 第二行：删除脚本文件夹<br>
+                                    • 第三行：删除定时任务配置
+                                </p>
+                                <p data-lang="en">
+                                    <strong>What each command does:</strong><br>
+                                    • Line 1: Stop the scheduled task<br>
+                                    • Line 2: Delete the script folder<br>
+                                    • Line 3: Delete the task configuration
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 7 -->
+                    <div class="faq-item">
+                        <button class="faq-question" onclick="toggleFaq(this)">
+                            <span>
+                                <span data-lang="zh" class="active">如何确认脚本已被完全删除？</span>
+                                <span data-lang="en">How do I verify the script is completely removed?</span>
+                            </span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p data-lang="zh" class="active">
+                                    在终端运行以下命令检查：
+                                </p>
+                                <p data-lang="en">
+                                    Run these commands in Terminal to check:
+                                </p>
+                                <div class="code-block">ls ~/.dotlife
+ls ~/Library/LaunchAgents/com.dotlife.wallpaper.plist
+launchctl list | grep dotlife</div>
+                                <p data-lang="zh" class="active">
+                                    <strong>如果已完全删除</strong>，你会看到：<br>
+                                    • 前两行显示 <code>No such file or directory</code><br>
+                                    • 第三行没有任何输出<br><br>
+                                    如果还有输出，说明没删干净，请重新运行卸载命令。
+                                </p>
+                                <p data-lang="en">
+                                    <strong>If completely removed</strong>, you'll see:<br>
+                                    • First two lines show <code>No such file or directory</code><br>
+                                    • Third line shows no output<br><br>
+                                    If there's any output, run the uninstall commands again.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1727,6 +1859,14 @@
             document.getElementById('resolutionBadge').textContent = `${w} × ${h}`;
             generateWallpaper();
         });
+        document.getElementById('shape').addEventListener('change', generateWallpaper);
+        document.getElementById('paddingPreset').addEventListener('change', (e) => {
+            const customPanel = document.getElementById('paddingCustom');
+            customPanel.style.display = e.target.value === 'custom' ? 'block' : 'none';
+            generateWallpaper();
+        });
+        document.getElementById('paddingTop').addEventListener('change', generateWallpaper);
+        document.getElementById('paddingBottom').addEventListener('change', generateWallpaper);
 
         function getWeeksLived(birthDate) {
             const birth = new Date(birthDate);
@@ -1743,6 +1883,8 @@
             const resolution = document.getElementById('resolution').value;
             const bgColor = document.getElementById('bgColor').value;
             const accentColor = document.getElementById('accentColor').value;
+            const shape = document.getElementById('shape').value;
+            const paddingPreset = document.getElementById('paddingPreset').value;
 
             const [width, height] = resolution.split('x').map(Number);
             canvas.width = width;
@@ -1772,18 +1914,42 @@
             }
             ctx.putImageData(imageData, 0, 0);
 
-            // 网格参数 - 更横向的布局
+            // 边距预设
+            let paddingTopPercent, paddingBottomPercent;
+            switch (paddingPreset) {
+                case 'notch':
+                    paddingTopPercent = 15;
+                    paddingBottomPercent = 8;
+                    break;
+                case 'standard':
+                    paddingTopPercent = 12;
+                    paddingBottomPercent = 5;
+                    break;
+                case 'hidden':
+                    paddingTopPercent = 8;
+                    paddingBottomPercent = 5;
+                    break;
+                case 'custom':
+                    paddingTopPercent = parseInt(document.getElementById('paddingTop').value) || 12;
+                    paddingBottomPercent = parseInt(document.getElementById('paddingBottom').value) || 5;
+                    break;
+                default:
+                    paddingTopPercent = 12;
+                    paddingBottomPercent = 5;
+            }
+
+            // 网格参数
             const cols = 52;
             const rows = lifespan;
             
-            // 减少 padding，让网格更宽
             const paddingX = width * 0.05;
-            const paddingY = height * 0.08;
-            const headerSpace = height * 0.1;
-            const labelSpace = width * 0.03; // 左侧年龄标签空间
+            const paddingTop = height * (paddingTopPercent / 100);
+            const paddingBottom = height * (paddingBottomPercent / 100);
+            const headerSpace = height * 0.06;
+            const labelSpace = width * 0.03;
             
             const availableWidth = width - paddingX * 2 - labelSpace;
-            const availableHeight = height - paddingY * 2 - headerSpace;
+            const availableHeight = height - paddingTop - paddingBottom - headerSpace;
             
             // 计算点的大小和间距
             const maxCellWidth = availableWidth / cols;
@@ -1795,21 +1961,21 @@
             const gridWidth = cols * cellSize + (cols - 1) * gapX;
             const gridHeight = rows * cellSize + (rows - 1) * gapY;
             const startX = paddingX + labelSpace + (availableWidth - gridWidth) / 2;
-            const startY = paddingY + headerSpace;
+            const startY = paddingTop + headerSpace;
 
             // 标题
             const titleText = currentLang === 'zh' ? '人生周历' : 'LIFE IN WEEKS';
             ctx.fillStyle = accentColor;
-            ctx.font = `600 ${Math.round(width * 0.025)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.font = `600 ${Math.round(width * 0.022)}px -apple-system, BlinkMacSystemFont, sans-serif`;
             ctx.textAlign = 'center';
-            ctx.fillText(titleText, width / 2, paddingY + headerSpace * 0.4);
+            ctx.fillText(titleText, width / 2, paddingTop + headerSpace * 0.5);
             
             const subtitleText = currentLang === 'zh' 
                 ? `${weeksLived.toLocaleString()} 周已过 · ${weeksLeft.toLocaleString()} 周剩余 · ${percentComplete}%`
                 : `${weeksLived.toLocaleString()} lived · ${weeksLeft.toLocaleString()} left · ${percentComplete}%`;
             ctx.fillStyle = '#666666';
-            ctx.font = `400 ${Math.round(width * 0.011)}px -apple-system, BlinkMacSystemFont, sans-serif`;
-            ctx.fillText(subtitleText, width / 2, paddingY + headerSpace * 0.7);
+            ctx.font = `400 ${Math.round(width * 0.01)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+            ctx.fillText(subtitleText, width / 2, paddingTop + headerSpace * 0.85);
 
             // 计算空点颜色
             const num = parseInt(bgColor.replace('#', ''), 16);
@@ -1818,7 +1984,42 @@
             const b = Math.min(255, Math.max(0, (num & 0x0000FF) + 15));
             const emptyColor = '#' + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
 
-            // 绘制圆角方块网格
+            // 绘制形状函数
+            function drawShape(x, y, size, shapeType) {
+                ctx.beginPath();
+                switch (shapeType) {
+                    case 'circle':
+                        ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+                        break;
+                    case 'square':
+                        ctx.rect(x, y, size, size);
+                        break;
+                    case 'diamond':
+                        ctx.moveTo(x + size / 2, y);
+                        ctx.lineTo(x + size, y + size / 2);
+                        ctx.lineTo(x + size / 2, y + size);
+                        ctx.lineTo(x, y + size / 2);
+                        ctx.closePath();
+                        break;
+                    case 'rounded':
+                    default:
+                        const radius = size * 0.25;
+                        ctx.moveTo(x + radius, y);
+                        ctx.lineTo(x + size - radius, y);
+                        ctx.quadraticCurveTo(x + size, y, x + size, y + radius);
+                        ctx.lineTo(x + size, y + size - radius);
+                        ctx.quadraticCurveTo(x + size, y + size, x + size - radius, y + size);
+                        ctx.lineTo(x + radius, y + size);
+                        ctx.quadraticCurveTo(x, y + size, x, y + size - radius);
+                        ctx.lineTo(x, y + radius);
+                        ctx.quadraticCurveTo(x, y, x + radius, y);
+                        ctx.closePath();
+                        break;
+                }
+                ctx.fill();
+            }
+
+            // 绘制网格
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
                     const weekIndex = row * 52 + col;
@@ -1826,21 +2027,7 @@
                     const y = startY + row * (cellSize + gapY);
                     
                     ctx.fillStyle = weekIndex < weeksLived ? accentColor : emptyColor;
-                    
-                    // 圆角方块
-                    const radius = cellSize * 0.25;
-                    ctx.beginPath();
-                    ctx.moveTo(x + radius, y);
-                    ctx.lineTo(x + cellSize - radius, y);
-                    ctx.quadraticCurveTo(x + cellSize, y, x + cellSize, y + radius);
-                    ctx.lineTo(x + cellSize, y + cellSize - radius);
-                    ctx.quadraticCurveTo(x + cellSize, y + cellSize, x + cellSize - radius, y + cellSize);
-                    ctx.lineTo(x + radius, y + cellSize);
-                    ctx.quadraticCurveTo(x, y + cellSize, x, y + cellSize - radius);
-                    ctx.lineTo(x, y + radius);
-                    ctx.quadraticCurveTo(x, y, x + radius, y);
-                    ctx.closePath();
-                    ctx.fill();
+                    drawShape(x, y, cellSize, shape);
                 }
             }
 
@@ -1866,12 +2053,27 @@
         // 模态框
         function openScriptModal() {
             const birthDate = document.getElementById('birthDate').value;
+            const paddingPreset = document.getElementById('paddingPreset').value;
+            let paddingTop, paddingBottom;
+            switch (paddingPreset) {
+                case 'notch': paddingTop = 15; paddingBottom = 8; break;
+                case 'standard': paddingTop = 12; paddingBottom = 5; break;
+                case 'hidden': paddingTop = 8; paddingBottom = 5; break;
+                case 'custom':
+                    paddingTop = parseInt(document.getElementById('paddingTop').value) || 12;
+                    paddingBottom = parseInt(document.getElementById('paddingBottom').value) || 5;
+                    break;
+                default: paddingTop = 12; paddingBottom = 5;
+            }
             const config = {
                 birthDate: birthDate,
                 lifespan: document.getElementById('lifespan').value,
                 resolution: document.getElementById('resolution').value,
                 bgColor: document.getElementById('bgColor').value,
                 accentColor: document.getElementById('accentColor').value,
+                shape: document.getElementById('shape').value,
+                paddingTop: paddingTop,
+                paddingBottom: paddingBottom,
                 lang: currentLang
             };
             
@@ -1882,6 +2084,9 @@ LIFESPAN = <span class="string">${config.lifespan}</span>
 RESOLUTION = <span class="string">"${config.resolution}"</span>
 BG_COLOR = <span class="string">"${config.bgColor}"</span>
 ACCENT_COLOR = <span class="string">"${config.accentColor}"</span>
+SHAPE = <span class="string">"${config.shape}"</span>
+PADDING_TOP = <span class="string">${config.paddingTop}%</span>
+PADDING_BOTTOM = <span class="string">${config.paddingBottom}%</span>
 LANGUAGE = <span class="string">"${config.lang}"</span>`;
             
             document.getElementById('scriptModal').classList.add('active');
@@ -1896,12 +2101,27 @@ LANGUAGE = <span class="string">"${config.lang}"</span>`;
         });
 
         function downloadScript() {
+            const paddingPreset = document.getElementById('paddingPreset').value;
+            let paddingTop, paddingBottom;
+            switch (paddingPreset) {
+                case 'notch': paddingTop = 15; paddingBottom = 8; break;
+                case 'standard': paddingTop = 12; paddingBottom = 5; break;
+                case 'hidden': paddingTop = 8; paddingBottom = 5; break;
+                case 'custom':
+                    paddingTop = parseInt(document.getElementById('paddingTop').value) || 12;
+                    paddingBottom = parseInt(document.getElementById('paddingBottom').value) || 5;
+                    break;
+                default: paddingTop = 12; paddingBottom = 5;
+            }
             const config = {
                 birthDate: document.getElementById('birthDate').value,
                 lifespan: document.getElementById('lifespan').value,
                 resolution: document.getElementById('resolution').value,
                 bgColor: document.getElementById('bgColor').value,
                 accentColor: document.getElementById('accentColor').value,
+                shape: document.getElementById('shape').value,
+                paddingTop: paddingTop,
+                paddingBottom: paddingBottom,
                 lang: currentLang
             };
 
@@ -1937,6 +2157,9 @@ WIDTH = ${width}
 HEIGHT = ${height}
 BG_COLOR = "${config.bgColor}"
 ACCENT_COLOR = "${config.accentColor}"
+SHAPE = "${config.shape}"
+PADDING_TOP = ${config.paddingTop}
+PADDING_BOTTOM = ${config.paddingBottom}
 LANG = "${config.lang}"
 # ==========================
 
@@ -1956,6 +2179,20 @@ def get_weeks_lived():
     today = datetime.now()
     return max(0, (today - birth).days // 7)
 
+def get_shape_svg(x, y, size, shape, color):
+    if shape == "circle":
+        cx, cy, r = x + size/2, y + size/2, size/2
+        return f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{color}"/>'
+    elif shape == "square":
+        return f'<rect x="{x}" y="{y}" width="{size}" height="{size}" fill="{color}"/>'
+    elif shape == "diamond":
+        cx, cy = x + size/2, y + size/2
+        points = f"{cx},{y} {x+size},{cy} {cx},{y+size} {x},{cy}"
+        return f'<polygon points="{points}" fill="{color}"/>'
+    else:  # rounded
+        r = size * 0.25
+        return f'<rect x="{x}" y="{y}" width="{size}" height="{size}" rx="{r}" ry="{r}" fill="{color}"/>'
+
 def generate_svg():
     weeks_lived = get_weeks_lived()
     total_weeks = LIFESPAN * 52
@@ -1966,12 +2203,13 @@ def generate_svg():
     rows = LIFESPAN
     
     padding_x = WIDTH * 0.05
-    padding_y = HEIGHT * 0.08
-    header_space = HEIGHT * 0.1
+    padding_top = HEIGHT * (PADDING_TOP / 100)
+    padding_bottom = HEIGHT * (PADDING_BOTTOM / 100)
+    header_space = HEIGHT * 0.06
     label_space = WIDTH * 0.03
     
     available_w = WIDTH - padding_x * 2 - label_space
-    available_h = HEIGHT - padding_y * 2 - header_space
+    available_h = HEIGHT - padding_top - padding_bottom - header_space
     
     max_cell_w = available_w / cols
     max_cell_h = available_h / rows
@@ -1982,7 +2220,7 @@ def generate_svg():
     grid_w = cols * cell_size + (cols - 1) * gap_x
     grid_h = rows * cell_size + (rows - 1) * gap_y
     start_x = padding_x + label_space + (available_w - grid_w) / 2
-    start_y = padding_y + header_space
+    start_y = padding_top + header_space
     
     empty_color = adjust_brightness(BG_COLOR, 15)
     
@@ -1995,24 +2233,23 @@ def generate_svg():
     svg = f'''<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="{WIDTH}" height="{HEIGHT}" viewBox="0 0 {WIDTH} {HEIGHT}">
   <rect width="{WIDTH}" height="{HEIGHT}" fill="{BG_COLOR}"/>
-  <text x="{WIDTH/2}" y="{padding_y + header_space * 0.4}" 
+  <text x="{WIDTH/2}" y="{padding_top + header_space * 0.5}" 
         font-family="-apple-system, BlinkMacSystemFont, sans-serif" 
-        font-size="{WIDTH * 0.025}" font-weight="600" fill="{ACCENT_COLOR}" 
+        font-size="{WIDTH * 0.022}" font-weight="600" fill="{ACCENT_COLOR}" 
         text-anchor="middle">{title}</text>
-  <text x="{WIDTH/2}" y="{padding_y + header_space * 0.7}" 
+  <text x="{WIDTH/2}" y="{padding_top + header_space * 0.85}" 
         font-family="-apple-system, BlinkMacSystemFont, sans-serif" 
-        font-size="{WIDTH * 0.011}" fill="#666666" 
+        font-size="{WIDTH * 0.01}" fill="#666666" 
         text-anchor="middle">{subtitle}</text>
 '''
     
     for row in range(rows):
         for col in range(cols):
             week_idx = row * 52 + col
-            cx = start_x + col * (cell_size + gap_x) + cell_size / 2
-            cy = start_y + row * (cell_size + gap_y) + cell_size / 2
-            r = cell_size / 2
+            x = start_x + col * (cell_size + gap_x)
+            y = start_y + row * (cell_size + gap_y)
             color = ACCENT_COLOR if week_idx < weeks_lived else empty_color
-            svg += f'  <circle cx="{cx}" cy="{cy}" r="{r}" fill="{color}"/>\\n'
+            svg += f'  {get_shape_svg(x, y, cell_size, SHAPE, color)}\\n'
     
     for age in range(10, LIFESPAN + 1, 10):
         y = start_y + (age - 1) * (cell_size + gap_y) + cell_size / 2 + 3
