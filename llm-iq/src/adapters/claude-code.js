@@ -35,12 +35,13 @@ function exec(cmd, args, stdin, timeoutMs, env) {
   });
 }
 
-export function claudeCodeAdapter({ model, env } = {}) {
+export function claudeCodeAdapter({ model, effort, env } = {}) {
   return {
     name: 'claude-code',
     async run(prompt, _q, { timeoutMs = 240000 } = {}) {
       const args = ['-p', '--output-format', 'json', '--max-turns', '3'];
       if (model) args.push('--model', model);
+      if (effort) args.push('--effort', effort);
       const t0 = Date.now();
       const { stdout, stderr, code, timedOut } = await exec('claude', args, prompt, timeoutMs, env);
       if (timedOut) throw new Error(`claude timed out after ${Math.round(timeoutMs / 1000)}s`);
