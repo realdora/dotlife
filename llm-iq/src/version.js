@@ -6,7 +6,10 @@
 // v2: longer chains / denser constraints (still saturated — Fable 5: 36/36)
 // v3: structurally harder tasks aimed at top-model weak spots: letter
 //     counting, solver-verified logic-grid puzzles, multi-hop retrieval,
-//     longer stateful simulation.
-export const BENCH_VERSION = 3;
+//     longer stateful simulation. (Gradient still too flat: 100/97/94
+//     for Fable/Sonnet/Haiku.)
+// v4: scale state-tracking volume past attention capacity — the lever
+//     that actually produced tier misses in v3 calibration.
+export const BENCH_VERSION = 4;
 
-export const TOOL_VERSION = '0.3.0';
+export const TOOL_VERSION = '0.4.0';

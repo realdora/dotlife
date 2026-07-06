@@ -16,7 +16,7 @@ const WORDS = [
 
 function letterCount(rng, id) {
   const words = [];
-  const target = int(rng, 100, 130);
+  const target = int(rng, 260, 320);
   while (words.length < target) words.push(pick(rng, WORDS));
   const text = words.join(' ');
 
@@ -24,8 +24,8 @@ function letterCount(rng, id) {
   // low enough that the count is a meaningful number.
   const freq = {};
   for (const ch of text) if (ch !== ' ') freq[ch] = (freq[ch] || 0) + 1;
-  const options = Object.entries(freq).filter(([, n]) => n >= 25 && n <= 70);
-  const [letter, n] = options.length ? pick(rng, options) : Object.entries(freq)[0];
+  const ranked = Object.entries(freq).sort((a, b) => Math.abs(a[1] - 90) - Math.abs(b[1] - 90));
+  const [letter, n] = pick(rng, ranked.slice(0, 3));
 
   return {
     id,
@@ -40,8 +40,8 @@ function letterCount(rng, id) {
 }
 
 function substringCount(rng, id) {
-  const alphabet = 'abcde';
-  const len = int(rng, 180, 240);
+  const alphabet = 'abcd';
+  const len = int(rng, 500, 650);
   const s = Array.from({ length: len }, () => alphabet[int(rng, 0, alphabet.length - 1)]).join('');
   // Distinct letters, so occurrences can never overlap each other.
   const [c1, c2] = sample(rng, [...alphabet], 2);

@@ -23,13 +23,13 @@ function randWord(rng, len, alphabet = 'abcdefghijklmnopqrstuvwxyz') {
 }
 
 function nestedLoopTemplate(rng) {
-  const A = int(rng, 6, 8);
-  const B = int(rng, 15, 20);
+  const A = int(rng, 10, 14);
+  const B = int(rng, 30, 40);
   const S = int(rng, 2, 3);
   const M = int(rng, 3, 4);
   const R = int(rng, 0, M - 1);
-  const T = int(rng, 150, 400);
-  const D = int(rng, 7, 19);
+  const T = int(rng, 300, 900);
+  const D = int(rng, 9, 25);
   const INIT = int(rng, 0, 25);
   return [
     `let total = ${INIT};`,
@@ -49,7 +49,7 @@ function nestedLoopTemplate(rng) {
 
 function sortTemplate(rng) {
   const xs = [];
-  while (xs.length < 12) {
+  while (xs.length < 16) {
     const v = int(rng, 1, 99);
     if (!xs.includes(v)) xs.push(v);
   }
@@ -63,7 +63,7 @@ function sortTemplate(rng) {
 }
 
 function charCodeTemplate(rng) {
-  const s = randWord(rng, int(rng, 12, 14));
+  const s = randWord(rng, int(rng, 18, 22));
   const K = int(rng, 2, 5);
   const A = int(rng, 1, 2);
   return [
@@ -80,7 +80,7 @@ function charCodeTemplate(rng) {
 
 function frequencyTemplate(rng) {
   // Narrow alphabet forces repeats so the filter has something to keep.
-  const s = randWord(rng, int(rng, 20, 24), 'abcdef');
+  const s = randWord(rng, int(rng, 30, 36), 'abcde');
   return [
     `const s = '${s}';`,
     `const counts = {};`,
@@ -95,7 +95,7 @@ function frequencyTemplate(rng) {
 }
 
 function recursionTemplate(rng) {
-  const N = int(rng, 13, 16);
+  const N = int(rng, 18, 22);
   const K = int(rng, 1, 3);
   return [
     `function f(n) {`,

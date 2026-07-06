@@ -1,17 +1,17 @@
 import { int, pick } from '../rng.js';
 import { parseIntLoose } from '../answer.js';
 
-// Multi-step integer arithmetic, sized for top-tier models: 10-13 operands,
-// up to three multiplications, two separate parenthesized groups. Operands
+// Multi-step integer arithmetic, sized for top-tier models: 30-36 operands,
+// up to eight multiplications, three separate parenthesized groups. Operands
 // adjacent to '*' stay 2-digit so magnitudes remain bounded while the
 // mental chain stays long.
 export function arithmetic(rng, id) {
-  const count = int(rng, 18, 22);
+  const count = int(rng, 30, 36);
   const ops = [];
   let stars = 0;
   for (let i = 0; i < count - 1; i++) {
     let op = pick(rng, ['+', '+', '-', '-', '*', '*']);
-    if (op === '*' && stars >= 5) op = pick(rng, ['+', '-']);
+    if (op === '*' && stars >= 8) op = pick(rng, ['+', '-']);
     if (op === '*') stars++;
     ops.push(op);
   }

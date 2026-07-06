@@ -38,7 +38,7 @@ function countSolutions(n, clues, cap) {
 }
 
 export function ordering(rng, id) {
-  const n = int(rng, 6, 7);
+  const n = int(rng, 7, 8);
   const people = sample(rng, NAMES, n); // people[i] finished in position i (0 = winner)
 
   // Candidate clues, all true of the hidden order. tp(person) = position.
@@ -70,9 +70,8 @@ export function ordering(rng, id) {
       added++;
     }
   }
-  for (const i of shuffle(rng, Array.from({ length: n - 1 }, (_, x) => x)).slice(0, 3)) {
-    addClue(`C${i}`, (pos) => pos[i + 1] - pos[i] === 1, `${people[i]} finished immediately ahead of ${people[i + 1]}.`);
-  }
+  // No "immediately ahead" clues in the pool — they collapse the puzzle
+  // into chain-sorting. They remain only as the uniqueness fallback.
   for (const i of shuffle(rng, Array.from({ length: n }, (_, x) => x))) {
     if (i < 2) continue;
     const k = int(rng, 2, Math.min(4, i));
@@ -92,9 +91,9 @@ export function ordering(rng, id) {
   }
 
   // Greedily add clues that shrink the solution set until it is unique.
-  // Counts are exact (n! ≤ 5040 for n ≤ 7), otherwise weak clues whose
+  // Counts are exact (n! ≤ 40320 for n ≤ 8), otherwise weak clues whose
   // benefit lies beyond a cap would never be accepted.
-  const EXACT = 6000;
+  const EXACT = 50000;
   const clues = [];
   let count = countSolutions(n, clues, EXACT);
   for (const c of shuffle(rng, candidates)) {
