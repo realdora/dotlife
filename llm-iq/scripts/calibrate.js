@@ -23,6 +23,9 @@ const perCat = Number(opt('--per-cat', 6));
 const seedBase = opt('--seed-base', 'cal');
 const concurrency = Number(opt('--concurrency', 4));
 const cats = opt('--categories', Object.keys(GENERATORS).join(',')).split(',');
+// Simulate an effort cut ("artificial nerf") via Claude Code's thinking
+// budget: --thinking 0 disables extended thinking entirely.
+const thinking = opt('--thinking');
 
 const questions = [];
 for (const cat of cats) {
@@ -32,8 +35,14 @@ for (const cat of cats) {
   }
 }
 
-const adapter = claudeCodeAdapter(model ? { model } : {});
-console.error(`calibrating bench v${BENCH_VERSION} · ${questions.length} questions · adapter ${adapter.name}${model ? ` · model ${model}` : ''}`);
+const adapter = claudeCodeAdapter({
+  ...(model ? { model } : {}),
+  ...(thinking !== undefined ? { env: { MAX_THINKING_TOKENS: String(thinking) } } : {}),
+});
+console.error(
+  `calibrating bench v${BENCH_VERSION} · ${questions.length} questions · adapter ${adapter.name}` +
+    `${model ? ` · model ${model}` : ''}${thinking !== undefined ? ` · MAX_THINKING_TOKENS=${thinking}` : ''}`
+);
 
 async function pool(items, limit, fn) {
   const res = new Array(items.length);

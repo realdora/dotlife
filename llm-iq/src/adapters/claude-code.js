@@ -6,9 +6,12 @@ import { spawn } from 'node:child_process';
 // user's own subscription quota. The actually-used model ID is captured
 // from the JSON result so silent model switches are visible.
 
-function exec(cmd, args, stdin, timeoutMs) {
+function exec(cmd, args, stdin, timeoutMs, env) {
   return new Promise((resolve) => {
-    const p = spawn(cmd, args, { stdio: ['pipe', 'pipe', 'pipe'] });
+    const p = spawn(cmd, args, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: env ? { ...process.env, ...env } : process.env,
+    });
     let out = '';
     let err = '';
     let timedOut = false;
@@ -32,14 +35,14 @@ function exec(cmd, args, stdin, timeoutMs) {
   });
 }
 
-export function claudeCodeAdapter({ model } = {}) {
+export function claudeCodeAdapter({ model, env } = {}) {
   return {
     name: 'claude-code',
     async run(prompt, _q, { timeoutMs = 240000 } = {}) {
       const args = ['-p', '--output-format', 'json', '--max-turns', '3'];
       if (model) args.push('--model', model);
       const t0 = Date.now();
-      const { stdout, stderr, code, timedOut } = await exec('claude', args, prompt, timeoutMs);
+      const { stdout, stderr, code, timedOut } = await exec('claude', args, prompt, timeoutMs, env);
       if (timedOut) throw new Error(`claude timed out after ${Math.round(timeoutMs / 1000)}s`);
       if (code !== 0) throw new Error(`claude exited ${code}: ${(stderr || stdout).slice(0, 300)}`);
       let obj;
