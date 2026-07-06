@@ -1,8 +1,10 @@
 import { int, pick, sample } from '../rng.js';
 
-// Constraint-following task: produce a line of words satisfying several
-// mechanical constraints at once (count, fixed word at position k, banned
-// letter, no repeats). Every constraint is checkable without a dictionary.
+// Constraint-following task at top-model density: seven simultaneous
+// mechanical constraints (count, two fixed positions, banned letter,
+// word-length band, final-letter requirement, no repeats). Everything is
+// checkable without a dictionary, and the canonical answer is constructed
+// alongside the constraints, proving they are satisfiable.
 
 const POOL = [
   'sun', 'moon', 'wind', 'fish', 'bird', 'song', 'cold', 'gold', 'iron',
@@ -17,20 +19,39 @@ const POOL = [
 ];
 
 const BANNED = ['e', 'a', 't', 'r'];
+const MIN_LEN = 3;
+const MAX_LEN = 6;
 
 export function format(rng, id) {
   const L = pick(rng, BANNED);
-  const candidates = POOL.filter((w) => !w.includes(L));
-  const N = int(rng, 9, 12);
-  const k = int(rng, 2, N - 1);
-  const words = sample(rng, candidates, N);
-  const W = words[k - 1];
+  const candidates = POOL.filter(
+    (w) => !w.includes(L) && w.length >= MIN_LEN && w.length <= MAX_LEN
+  );
+  const N = int(rng, 11, 14);
+
+  // Final word must end with letter F; pick F from what the pool offers.
+  const lastLetters = [...new Set(candidates.map((w) => w[w.length - 1]))];
+  const F = pick(rng, lastLetters);
+  const enders = candidates.filter((w) => w[w.length - 1] === F);
+  const lastWord = pick(rng, enders);
+
+  const rest = sample(rng, candidates.filter((w) => w !== lastWord), N - 1);
+  const words = [...rest, lastWord];
+
+  // Two fixed interior positions, k1 < k2, neither being the last slot.
+  const k1 = int(rng, 2, Math.floor(N / 2));
+  const k2 = int(rng, Math.floor(N / 2) + 1, N - 1);
+  const W1 = words[k1 - 1];
+  const W2 = words[k2 - 1];
 
   const prompt =
     `Write exactly one line of text satisfying ALL of these rules:\n` +
     `- exactly ${N} words, separated by single spaces\n` +
     `- only lowercase letters a-z and spaces (no digits, punctuation, or uppercase)\n` +
-    `- word number ${k} (counting from 1) must be exactly "${W}"\n` +
+    `- every word must be between ${MIN_LEN} and ${MAX_LEN} letters long\n` +
+    `- word number ${k1} (counting from 1) must be exactly "${W1}"\n` +
+    `- word number ${k2} must be exactly "${W2}"\n` +
+    `- the final word must end with the letter "${F}"\n` +
     `- the letter "${L}" must not appear anywhere in the line\n` +
     `- no word may appear more than once\n` +
     `The line does not need to be a meaningful sentence.`;
@@ -46,7 +67,9 @@ export function format(rng, id) {
       if (line.includes(L)) return false;
       const ws = line.split(' ');
       if (ws.length !== N) return false;
-      if (ws[k - 1] !== W) return false;
+      if (ws.some((w) => w.length < MIN_LEN || w.length > MAX_LEN)) return false;
+      if (ws[k1 - 1] !== W1 || ws[k2 - 1] !== W2) return false;
+      if (ws[N - 1][ws[N - 1].length - 1] !== F) return false;
       return new Set(ws).size === N;
     },
   };

@@ -1,18 +1,22 @@
 import { int } from '../rng.js';
 
-// Sequential string-transformation puzzle. Operations are generated while
-// being applied, so ground truth is exact by construction. Case-sensitive.
+// Sequential string-transformation puzzle at top-model length: a 12-14
+// character string through 7-8 operations drawn from 9 op types. Errors
+// compound down the chain. Operations are generated while being applied,
+// so ground truth is exact by construction. Case-sensitive.
 export function transform(rng, id) {
   const letters = 'abcdefghijklmnopqrstuvwxyz';
-  let s = Array.from({ length: int(rng, 8, 9) }, () => letters[int(rng, 0, 25)]).join('');
+  let s = Array.from({ length: int(rng, 12, 14) }, () => letters[int(rng, 0, 25)]).join('');
   const s0 = s;
 
   const steps = [];
-  const nOps = int(rng, 4, 5);
+  const nOps = int(rng, 7, 8);
   let prev = -1;
+  let shrinks = 0; // cap shrinking ops so the string stays interesting
   for (let t = 0; t < nOps; t++) {
-    let op = int(rng, 0, 4);
-    if (op === prev) op = (op + 1) % 5; // avoid trivially repeating the same op
+    let op = int(rng, 0, 8);
+    if (op === prev) op = (op + 1) % 9;
+    if ((op === 2 || op === 7) && shrinks >= 2) op = (op + 2) % 9;
     prev = op;
     switch (op) {
       case 0:
@@ -26,6 +30,7 @@ export function transform(rng, id) {
         break;
       }
       case 2:
+        shrinks++;
         steps.push('Delete every character in an even position, keeping the 1st, 3rd, 5th, ... characters.');
         s = [...s].filter((_, i) => i % 2 === 0).join('');
         break;
@@ -37,6 +42,34 @@ export function transform(rng, id) {
         steps.push('Convert every vowel (a, e, i, o, u) to uppercase.');
         s = s.replace(/[aeiou]/g, (c) => c.toUpperCase());
         break;
+      case 5: {
+        const k = int(rng, 1, 3);
+        steps.push(`Move the last ${k} character${k > 1 ? 's' : ''} to the front of the string.`);
+        s = s.slice(-k) + s.slice(0, -k);
+        break;
+      }
+      case 6: {
+        steps.push(
+          'Split the string in the middle and swap the two halves ' +
+            '(if the length is odd, the middle character belongs to the first half).'
+        );
+        const h = Math.ceil(s.length / 2);
+        s = s.slice(h) + s.slice(0, h);
+        break;
+      }
+      case 7:
+        shrinks++;
+        steps.push('Delete duplicate characters, keeping only the first occurrence of each (case-sensitive).');
+        s = [...new Set(s)].join('');
+        break;
+      case 8: {
+        const present = [...new Set(s.toLowerCase().replace(/[^a-z]/g, ''))];
+        const c = present[int(rng, 0, present.length - 1)];
+        const d = letters[int(rng, 0, 25)];
+        steps.push(`Replace every occurrence of "${c}" (lowercase only) with "${d}${d}".`);
+        s = s.split(c).join(d + d);
+        break;
+      }
     }
   }
 

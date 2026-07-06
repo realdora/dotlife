@@ -2,9 +2,11 @@ import vm from 'node:vm';
 import { int, pick, sample } from '../rng.js';
 import { parseIntLoose } from '../answer.js';
 
-// Predict-the-output questions. The snippet is generated from templates and
-// executed locally in a sandboxed vm to derive ground truth, so the checker
-// is exact by construction.
+// Predict-the-output questions sized for top models: nested loops with
+// interacting conditions, comparator sorts, char-code arithmetic,
+// frequency maps, and branching recursion. Snippets are generated from
+// templates and executed locally in a sandboxed vm, so the checker is
+// exact by construction.
 
 function runJs(code) {
   const out = [];
@@ -16,67 +18,100 @@ function runJs(code) {
   return out.join('\n');
 }
 
-const WORDS = [
-  'ember', 'stone', 'violet', 'oak', 'harbor', 'lily', 'granite', 'fox',
-  'meadow', 'pine', 'cobalt', 'fig', 'walnut', 'iris', 'thunder', 'elm',
-];
+function randWord(rng, len, alphabet = 'abcdefghijklmnopqrstuvwxyz') {
+  return Array.from({ length: len }, () => alphabet[int(rng, 0, alphabet.length - 1)]).join('');
+}
 
-function loopTemplate(rng) {
-  const A = int(rng, 1, 5);
-  const B = A + int(rng, 13, 19);
-  const M = int(rng, 3, 5);
+function nestedLoopTemplate(rng) {
+  const A = int(rng, 4, 6);
+  const B = int(rng, 9, 14);
+  const S = int(rng, 2, 3);
+  const M = int(rng, 3, 4);
   const R = int(rng, 0, M - 1);
-  const K = int(rng, 2, 4);
-  const D = int(rng, 1, 6);
-  const INIT = int(rng, 0, 20);
+  const T = int(rng, 150, 400);
+  const D = int(rng, 7, 19);
+  const INIT = int(rng, 0, 25);
   return [
-    `let acc = ${INIT};`,
-    `for (let i = ${A}; i <= ${B}; i++) {`,
-    `  if (i % ${M} === ${R}) {`,
-    `    acc += i * ${K};`,
-    `  } else {`,
-    `    acc -= ${D};`,
+    `let total = ${INIT};`,
+    `for (let i = 1; i <= ${A}; i++) {`,
+    `  for (let j = i; j <= ${B}; j += ${S}) {`,
+    `    if ((i + j) % ${M} === ${R}) {`,
+    `      total += i * j;`,
+    `    }`,
+    `    if (total > ${T}) {`,
+    `      total -= ${D};`,
+    `    }`,
     `  }`,
     `}`,
-    `console.log(acc);`,
+    `console.log(total);`,
   ].join('\n');
 }
 
-function pipelineTemplate(rng) {
-  const xs = Array.from({ length: int(rng, 8, 10) }, () => int(rng, 1, 30));
-  const M = int(rng, 2, 4);
-  const R = int(rng, 0, M - 1);
-  const K = int(rng, 2, 3);
-  const C = int(rng, 1, 9);
-  const INIT = int(rng, 0, 10);
+function sortTemplate(rng) {
+  const xs = [];
+  while (xs.length < 10) {
+    const v = int(rng, 1, 99);
+    if (!xs.includes(v)) xs.push(v);
+  }
+  const M = int(rng, 3, 5);
   return [
     `const xs = [${xs.join(', ')}];`,
-    `const r = xs`,
-    `  .filter(x => x % ${M} !== ${R})`,
-    `  .map(x => x * ${K} + ${C})`,
-    `  .reduce((a, b) => a + b, ${INIT});`,
+    `const ys = xs.slice().sort((a, b) => (a % ${M}) - (b % ${M}) || a - b);`,
+    `const r = ys[2] * 100 + ys[ys.length - 3] + xs.indexOf(ys[0]);`,
     `console.log(r);`,
   ].join('\n');
 }
 
-function stringTemplate(rng) {
-  const words = sample(rng, WORDS, 6);
+function charCodeTemplate(rng) {
+  const s = randWord(rng, int(rng, 8, 10));
+  const K = int(rng, 2, 5);
+  const A = int(rng, 1, 2);
   return [
-    `const words = [${words.map((w) => `'${w}'`).join(', ')}];`,
+    `const s = '${s}';`,
     `let out = '';`,
-    `for (const w of words) {`,
-    `  if (w.length % 2 === 0) {`,
-    `    out += w[0].toUpperCase();`,
-    `  } else {`,
-    `    out += w[w.length - 1];`,
-    `  }`,
+    `for (let i = 0; i < s.length; i++) {`,
+    `  const c = s.charCodeAt(i) - 97;`,
+    `  out += String.fromCharCode(97 + (c + i * ${K}) % 26);`,
     `}`,
-    `console.log(out);`,
+    `console.log(out.toUpperCase().slice(${A}, out.length - 1));`,
+  ].join('\n');
+}
+
+function frequencyTemplate(rng) {
+  // Narrow alphabet forces repeats so the filter has something to keep.
+  const s = randWord(rng, int(rng, 14, 16), 'abcdefgh');
+  return [
+    `const s = '${s}';`,
+    `const counts = {};`,
+    `for (const ch of s) {`,
+    `  counts[ch] = (counts[ch] || 0) + 1;`,
+    `}`,
+    `const pairs = Object.entries(counts).filter(([c, n]) => n >= 2);`,
+    `console.log(pairs.map(([c, n]) => c + n).join('-'));`,
+  ].join('\n');
+}
+
+function recursionTemplate(rng) {
+  const N = int(rng, 9, 12);
+  const K = int(rng, 1, 3);
+  return [
+    `function f(n) {`,
+    `  if (n <= 1) return n;`,
+    `  if (n % 2 === 0) return f(n - 1) + f(n - 2);`,
+    `  return f(n - 1) - ${K};`,
+    `}`,
+    `console.log(f(${N}));`,
   ].join('\n');
 }
 
 export function code(rng, id) {
-  const template = pick(rng, [loopTemplate, pipelineTemplate, stringTemplate]);
+  const template = pick(rng, [
+    nestedLoopTemplate,
+    sortTemplate,
+    charCodeTemplate,
+    frequencyTemplate,
+    recursionTemplate,
+  ]);
   const snippet = template(rng);
   const expected = runJs(snippet);
   const numeric = /^-?\d+$/.test(expected);
