@@ -1,13 +1,11 @@
-// Difficulty calibration harness: runs K questions per category against a
-// real adapter and prints per-category accuracy plus every miss (expected
-// vs got). Target band per category for the reference top model: 40-70%.
+// Ladder calibration harness: runs a full profile against a real adapter
+// and prints per-rung accuracy plus every miss (expected vs got). Used to
+// verify the ladder discriminates between model tiers / effort levels.
 //
-// usage: node scripts/calibrate.js [--model id] [--per-cat 6] [--seed-base cal]
-//        [--concurrency 4] [--categories a,b,c]
+// usage: node scripts/calibrate.js [--model id] [--effort low|medium|high]
+//        [--profile standard] [--seed cal] [--concurrency 4] [--thinking N]
 
-import { GENERATORS } from '../src/generators/index.js';
-import { makeRng } from '../src/rng.js';
-import { ANSWER_INSTRUCTIONS } from '../src/suite.js';
+import { buildSuite, ANSWER_INSTRUCTIONS } from '../src/suite.js';
 import { extractAnswer } from '../src/answer.js';
 import { claudeCodeAdapter } from '../src/adapters/claude-code.js';
 import { BENCH_VERSION } from '../src/version.js';
@@ -19,23 +17,13 @@ const opt = (name, dflt) => {
 };
 
 const model = opt('--model');
-const perCat = Number(opt('--per-cat', 6));
-const seedBase = opt('--seed-base', 'cal');
-const concurrency = Number(opt('--concurrency', 4));
-const cats = opt('--categories', Object.keys(GENERATORS).join(',')).split(',');
-// Simulate an effort cut ("artificial nerf") via Claude Code's thinking
-// budget: --thinking 0 disables extended thinking entirely.
-const thinking = opt('--thinking');
-// Or via the CLI's own effort control: --effort low|medium|high.
 const effort = opt('--effort');
+const thinking = opt('--thinking');
+const profile = opt('--profile', 'standard');
+const seed = opt('--seed', 'cal');
+const concurrency = Number(opt('--concurrency', 4));
 
-const questions = [];
-for (const cat of cats) {
-  for (let i = 0; i < perCat; i++) {
-    const rng = makeRng(`v${BENCH_VERSION}:${seedBase}:${cat}:${i}`);
-    questions.push(GENERATORS[cat](rng, `${cat}-${i + 1}`));
-  }
-}
+const questions = buildSuite(seed, profile);
 
 const adapter = claudeCodeAdapter({
   ...(model ? { model } : {}),
@@ -43,7 +31,7 @@ const adapter = claudeCodeAdapter({
   ...(thinking !== undefined ? { env: { MAX_THINKING_TOKENS: String(thinking) } } : {}),
 });
 console.error(
-  `calibrating bench v${BENCH_VERSION} · ${questions.length} questions · adapter ${adapter.name}` +
+  `calibrating bench v${BENCH_VERSION} · ${profile} (${questions.length} questions) · adapter ${adapter.name}` +
     `${model ? ` · model ${model}` : ''}${effort ? ` · effort ${effort}` : ''}` +
     `${thinking !== undefined ? ` · MAX_THINKING_TOKENS=${thinking}` : ''}`
 );
@@ -83,16 +71,18 @@ const results = await pool(questions, concurrency, async (q) => {
   }
   const got = extractAnswer(r.text).value;
   const correct = q.check(got);
-  console.error(`  [${done}/${questions.length}] ${q.id.padEnd(13)} ${correct ? '✓' : '✗'} ${(r.durationMs / 1000).toFixed(1)}s ${r.model || ''}`);
+  console.error(`  [${done}/${questions.length}] ${q.id.padEnd(16)} ${correct ? '✓' : '✗'} ${(r.durationMs / 1000).toFixed(1)}s ${r.model || ''}`);
   return { q, correct, got, costUsd: r.costUsd || 0 };
 });
 
-console.log(`\ncategory      acc     misses`);
-for (const cat of cats) {
-  const rs = results.filter((r) => r.q.category === cat);
-  const ok = rs.filter((r) => r.correct).length;
-  console.log(`${cat.padEnd(13)} ${ok}/${rs.length}`);
+console.log(`\nrung              acc`);
+for (const q of questions) {
+  const r = results.find((x) => x.q.id === q.id);
+  const mark = r.error ? 'ERR' : r.correct ? '✓' : '✗';
+  console.log(`${q.id.padEnd(17)} ${mark}`);
 }
+const ok = results.filter((r) => r.correct).length;
+console.log(`\ntotal: ${ok}/${results.length}`);
 const misses = results.filter((r) => !r.correct && !r.error);
 if (misses.length) {
   console.log(`\nmisses:`);

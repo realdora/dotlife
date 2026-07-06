@@ -4,9 +4,38 @@ const C = process.stdout.isTTY
   ? { g: '\x1b[32m', y: '\x1b[33m', r: '\x1b[31m', b: '\x1b[1m', d: '\x1b[2m', x: '\x1b[0m' }
   : { g: '', y: '', r: '', b: '', d: '', x: '' };
 
-function bar(correct, n, width = 12) {
-  const filled = n ? Math.round((correct / n) * width) : 0;
-  return '█'.repeat(filled) + '░'.repeat(width - filled);
+// One line per category: rung icons ordered by level, plus the frontier
+// (highest level with every sample correct, provided all lower tested
+// levels also held).
+function ladderLines(rungs) {
+  const byCat = new Map();
+  for (const r of rungs) {
+    if (!byCat.has(r.cat)) byCat.set(r.cat, []);
+    byCat.get(r.cat).push(r);
+  }
+  const catW = Math.max(...[...byCat.keys()].map((c) => c.length));
+  const lines = [];
+  for (const [cat, list] of byCat) {
+    list.sort((a, b) => a.level - b.level);
+    let frontier = -1;
+    let unbroken = true;
+    const cells = list.map((r) => {
+      const full = r.correct === r.n;
+      const none = r.correct === 0;
+      if (full && unbroken) frontier = r.level;
+      if (!full) unbroken = false;
+      const icon = full ? `${C.g}✓${C.x}` : none ? `${C.r}✗${C.x}` : `${C.y}±${C.x}`;
+      return `L${r.level}${icon}`;
+    });
+    const frontierNote =
+      list.length > 1
+        ? frontier === list[list.length - 1].level
+          ? `  ${C.d}frontier: beyond L${frontier}${C.x}`
+          : `  ${C.d}frontier: ${frontier < 0 ? 'below ' + 'L' + list[0].level : 'L' + frontier}${C.x}`
+        : '';
+    lines.push(`  ${cat.padEnd(catW)}  ${cells.join(' ')}${frontierNote}`);
+  }
+  return lines;
 }
 
 export function renderReport(entry, assessment, priorScores, baselineModels) {
@@ -23,18 +52,18 @@ export function renderReport(entry, assessment, priorScores, baselineModels) {
       (entry.costUsd ? ` ${C.d}·${C.x} $${entry.costUsd.toFixed(2)}` : '')
   );
   lines.push('');
-
-  const catW = Math.max(...Object.keys(entry.categories).map((c) => c.length));
-  for (const [cat, s] of Object.entries(entry.categories)) {
-    lines.push(`  ${cat.padEnd(catW)}  ${String(s.correct).padStart(2)}/${String(s.n).padEnd(2)}  ${bar(s.correct, s.n)}`);
-  }
+  lines.push(...ladderLines(entry.rungs || []));
 
   const [lo, hi] = wilson(entry.correct, entry.n);
   lines.push('');
   lines.push(
     `  ${C.b}SCORE ${entry.score.toFixed(1)}${C.x}  ` +
-      `${C.d}(${entry.correct}/${entry.n} correct · 95% CI ${(lo * 100).toFixed(0)}-${(hi * 100).toFixed(0)})${C.x}`
+      `${C.d}(level-weighted · ${entry.correct}/${entry.n} correct · raw 95% CI ` +
+      `${(lo * 100).toFixed(0)}-${(hi * 100).toFixed(0)})${C.x}`
   );
+  if (entry.effortSelfReport) {
+    lines.push(`  ${C.d}self-reported effort: ${entry.effortSelfReport} (unverified)${C.x}`);
+  }
   if (entry.formatFails) lines.push(`  ${C.y}format failures: ${entry.formatFails}${C.x} ${C.d}(answer tags missing)${C.x}`);
   if (entry.errors) lines.push(`  ${C.r}errors: ${entry.errors}${C.x} ${C.d}(counted as wrong)${C.x}`);
   lines.push('');

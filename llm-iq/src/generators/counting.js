@@ -2,9 +2,11 @@ import { int, pick, sample } from '../rng.js';
 import { parseIntLoose } from '../answer.js';
 
 // Exact counting — a structural weak spot of LLMs, which have to count
-// token-by-token with no working buffer. Two flavors: letter occurrences
-// in a word-soup text, and (non-overlapping-by-construction) two-letter
-// substring occurrences in a dense random string.
+// token-by-token with no working buffer. L0 is literally the viral
+// "how many r's in strawberry" tier; higher levels scale text volume
+// past attention capacity. Two flavors above L0: letter occurrences in
+// word-soup text, and two-letter substring occurrences in a dense
+// random string (distinct letters, so matches never overlap).
 
 const WORDS = [
   'sun', 'moon', 'wind', 'fish', 'bird', 'song', 'cold', 'gold', 'iron',
@@ -14,17 +16,50 @@ const WORDS = [
   'window', 'pilot', 'crimson', 'meadow', 'granite', 'thunder', 'walnut',
 ];
 
-function letterCount(rng, id) {
+// [words in text, letter-count sweet spot, substring-string length]
+const LEVELS = [
+  [1, 0, 0],
+  [12, 12, 60],
+  [40, 30, 150],
+  [120, 60, 300],
+  [280, 90, 500],
+  [500, 130, 700],
+];
+
+const VIRAL = [
+  'strawberry', 'mississippi', 'bookkeeper', 'banana', 'committee',
+  'raspberry', 'possession', 'blueberry', 'coconut', 'pineapple',
+];
+
+function viralCount(rng, id) {
+  const word = pick(rng, VIRAL);
+  // Pick among the letters that actually repeat — that's where the
+  // classic mistakes happen.
+  const freq = {};
+  for (const ch of word) freq[ch] = (freq[ch] || 0) + 1;
+  const repeated = Object.entries(freq).filter(([, n]) => n >= 2);
+  const [letter, n] = pick(rng, repeated);
+
+  return {
+    id,
+    category: 'counting',
+    prompt: `How many times does the letter "${letter}" appear in the word "${word}"? Answer with just the number.`,
+    answer: String(n),
+    check: (v) => parseIntLoose(v) === n,
+  };
+}
+
+function letterCount(rng, id, level) {
+  const [nWords, center] = LEVELS[level];
   const words = [];
-  const target = int(rng, 260, 320);
-  while (words.length < target) words.push(pick(rng, WORDS));
+  while (words.length < nWords) words.push(pick(rng, WORDS));
   const text = words.join(' ');
 
-  // Pick a letter with a mid-range count — high enough to be tedious,
-  // low enough that the count is a meaningful number.
   const freq = {};
   for (const ch of text) if (ch !== ' ') freq[ch] = (freq[ch] || 0) + 1;
-  const ranked = Object.entries(freq).sort((a, b) => Math.abs(a[1] - 90) - Math.abs(b[1] - 90));
+  const ranked = Object.entries(freq).sort(
+    (a, b) => Math.abs(a[1] - center) - Math.abs(b[1] - center)
+  );
   const [letter, n] = pick(rng, ranked.slice(0, 3));
 
   return {
@@ -39,11 +74,10 @@ function letterCount(rng, id) {
   };
 }
 
-function substringCount(rng, id) {
+function substringCount(rng, id, level) {
   const alphabet = 'abcd';
-  const len = int(rng, 500, 650);
+  const len = LEVELS[level][2] + int(rng, 0, 40);
   const s = Array.from({ length: len }, () => alphabet[int(rng, 0, alphabet.length - 1)]).join('');
-  // Distinct letters, so occurrences can never overlap each other.
   const [c1, c2] = sample(rng, [...alphabet], 2);
   const needle = c1 + c2;
   let n = 0;
@@ -61,6 +95,7 @@ function substringCount(rng, id) {
   };
 }
 
-export function counting(rng, id) {
-  return rng() < 0.5 ? letterCount(rng, id) : substringCount(rng, id);
+export function counting(rng, id, level = 3) {
+  if (level === 0) return viralCount(rng, id);
+  return rng() < 0.5 ? letterCount(rng, id, level) : substringCount(rng, id, level);
 }

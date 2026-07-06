@@ -1,11 +1,10 @@
 import { int, pick, sample, shuffle } from '../rng.js';
 import { parseIntLoose } from '../answer.js';
 
-// Multi-hop needle-in-a-haystack: 40 paragraphs (~2.5k tokens) with five
-// planted facility codes plus traps (an "annex" code and a retired former
-// code for the queried facilities). The question asks for the SUM of two
-// facilities' current codes — retrieval alone isn't enough, both needles
-// must be found, the traps rejected, and the numbers combined.
+// Needle-in-a-haystack across the ladder: document length, hop count and
+// trap count all scale. L0 is a 3-paragraph single lookup; L5 is a
+// ~90-paragraph document where three codes must be found (rejecting
+// "annex" and retired-code traps) and summed.
 
 const SUBJECTS = [
   'the logistics team', 'the finance group', 'the design unit',
@@ -32,6 +31,16 @@ const CITIES = [
   'Denver', 'Malmo', 'Leeds', 'Nadi', 'Bergen', 'Adelaide',
 ];
 
+// [paragraphs, hops, traps, facilities]
+const LEVELS = [
+  [3, 1, 0, 2],
+  [10, 1, 1, 4],
+  [25, 2, 2, 5],
+  [40, 2, 2, 5],
+  [60, 2, 4, 6],
+  [90, 3, 4, 6],
+];
+
 function sentence(rng) {
   const s = pick(rng, SUBJECTS);
   return (
@@ -40,36 +49,60 @@ function sentence(rng) {
   );
 }
 
-export function retrieval(rng, id) {
+export function retrieval(rng, id, level = 3) {
+  const [nParas, hops, nTraps, nFacilities] = LEVELS[level];
+
   const paras = [];
-  for (let p = 0; p < 40; p++) {
+  for (let p = 0; p < nParas; p++) {
     paras.push([sentence(rng), sentence(rng), sentence(rng)].join(' '));
   }
 
-  const cities = sample(rng, CITIES, 5);
+  const cities = sample(rng, CITIES, nFacilities);
   const codes = [];
-  while (codes.length < 7) {
+  while (codes.length < nFacilities + nTraps) {
     const c = int(rng, 1000, 9899);
     if (!codes.includes(c)) codes.push(c);
   }
 
-  const [t1, t2] = sample(rng, [0, 1, 2, 3, 4], 2);
+  const targets = sample(rng, Array.from({ length: nFacilities }, (_, i) => i), hops);
   const facts = cities.map(
     (city, t) => `The access code for the ${city} facility is ${codes[t]}.`
   );
-  // Traps aimed at the two queried facilities.
-  facts.push(`The access code for the ${cities[t1]} annex is ${codes[5]}.`);
-  facts.push(
-    `Note that the former access code for the ${cities[t2]} facility, ${codes[6]}, ` +
-      `was retired during the last security rotation.`
-  );
+  // Traps alternate between same-city "annex" codes and retired former
+  // codes, aimed at the queried facilities.
+  for (let t = 0; t < nTraps; t++) {
+    const target = targets[t % targets.length];
+    const trapCode = codes[nFacilities + t];
+    if (t % 2 === 0) {
+      facts.push(`The access code for the ${cities[target]} annex is ${trapCode}.`);
+    } else {
+      facts.push(
+        `Note that the former access code for the ${cities[target]} facility, ${trapCode}, ` +
+          `was retired during the last security rotation.`
+      );
+    }
+  }
 
-  const slots = sample(rng, Array.from({ length: 34 }, (_, i) => i + 3), facts.length);
+  const slots = sample(rng, Array.from({ length: nParas }, (_, i) => i), facts.length);
   shuffle(rng, facts).forEach((fact, i) => {
     paras[slots[i]] += ' ' + fact;
   });
 
-  const sum = codes[t1] + codes[t2];
+  let question;
+  let answer;
+  if (hops === 1) {
+    question =
+      `What is the current access code for the ${cities[targets[0]]} facility? ` +
+      `Reply with just the 4-digit code.`;
+    answer = String(codes[targets[0]]);
+  } else {
+    const names = targets.map((t) => `the ${cities[t]} facility`);
+    const list = names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+    question =
+      `What is the sum of the current access codes for ${list}? ` +
+      `Answer with just the number.`;
+    answer = String(targets.reduce((a, t) => a + codes[t], 0));
+  }
 
   return {
     id,
@@ -77,9 +110,8 @@ export function retrieval(rng, id) {
     prompt:
       `Below is an internal company document. Read it and answer the question at the end.\n\n` +
       `<document>\n${paras.join('\n\n')}\n</document>\n\n` +
-      `Question: What is the sum of the current access codes for the ${cities[t1]} facility ` +
-      `and the ${cities[t2]} facility? Answer with just the number.`,
-    answer: String(sum),
-    check: (v) => parseIntLoose(v) === sum,
+      `Question: ${question}`,
+    answer,
+    check: (v) => parseIntLoose(v) === Number(answer),
   };
 }

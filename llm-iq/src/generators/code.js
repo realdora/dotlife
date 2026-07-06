@@ -2,11 +2,10 @@ import vm from 'node:vm';
 import { int, pick, sample } from '../rng.js';
 import { parseIntLoose } from '../answer.js';
 
-// Predict-the-output questions sized for top models: nested loops with
-// interacting conditions, comparator sorts, char-code arithmetic,
-// frequency maps, and branching recursion. Snippets are generated from
-// templates and executed locally in a sandboxed vm, so the checker is
-// exact by construction.
+// Predict-the-output questions across the ladder: template shapes stay
+// constant while iteration counts / data sizes scale from a 6-step loop
+// (L0) to hundreds of interacting iterations (L5). Snippets are executed
+// locally in a sandboxed vm, so the checker is exact by construction.
 
 function runJs(code) {
   const out = [];
@@ -22,13 +21,22 @@ function randWord(rng, len, alphabet = 'abcdefghijklmnopqrstuvwxyz') {
   return Array.from({ length: len }, () => alphabet[int(rng, 0, alphabet.length - 1)]).join('');
 }
 
-function nestedLoopTemplate(rng) {
-  const A = int(rng, 10, 14);
-  const B = int(rng, 30, 40);
+// Per-template scale tables, indexed by level.
+const LOOP_A = [2, 4, 6, 12, 16, 20];
+const LOOP_B = [6, 12, 20, 36, 48, 60];
+const LOOP_T = [20, 60, 150, 600, 900, 1300];
+const SORT_N = [6, 8, 10, 16, 20, 24];
+const CHAR_N = [4, 6, 10, 20, 24, 30];
+const FREQ_N = [8, 12, 20, 32, 42, 52];
+const REC_N = [6, 9, 12, 19, 23, 26];
+
+function nestedLoopTemplate(rng, level) {
+  const A = LOOP_A[level] + int(rng, 0, 2);
+  const B = LOOP_B[level] + int(rng, 0, 4);
   const S = int(rng, 2, 3);
   const M = int(rng, 3, 4);
   const R = int(rng, 0, M - 1);
-  const T = int(rng, 300, 900);
+  const T = LOOP_T[level] + int(rng, 0, 80);
   const D = int(rng, 9, 25);
   const INIT = int(rng, 0, 25);
   return [
@@ -47,9 +55,9 @@ function nestedLoopTemplate(rng) {
   ].join('\n');
 }
 
-function sortTemplate(rng) {
+function sortTemplate(rng, level) {
   const xs = [];
-  while (xs.length < 16) {
+  while (xs.length < SORT_N[level]) {
     const v = int(rng, 1, 99);
     if (!xs.includes(v)) xs.push(v);
   }
@@ -62,8 +70,8 @@ function sortTemplate(rng) {
   ].join('\n');
 }
 
-function charCodeTemplate(rng) {
-  const s = randWord(rng, int(rng, 18, 22));
+function charCodeTemplate(rng, level) {
+  const s = randWord(rng, CHAR_N[level] + int(rng, 0, 2));
   const K = int(rng, 2, 5);
   const A = int(rng, 1, 2);
   return [
@@ -78,9 +86,9 @@ function charCodeTemplate(rng) {
   ].join('\n');
 }
 
-function frequencyTemplate(rng) {
+function frequencyTemplate(rng, level) {
   // Narrow alphabet forces repeats so the filter has something to keep.
-  const s = randWord(rng, int(rng, 30, 36), 'abcde');
+  const s = randWord(rng, FREQ_N[level] + int(rng, 0, 4), 'abcde');
   return [
     `const s = '${s}';`,
     `const counts = {};`,
@@ -94,8 +102,8 @@ function frequencyTemplate(rng) {
   ].join('\n');
 }
 
-function recursionTemplate(rng) {
-  const N = int(rng, 18, 22);
+function recursionTemplate(rng, level) {
+  const N = REC_N[level] + int(rng, 0, 2);
   const K = int(rng, 1, 3);
   return [
     `function f(n) {`,
@@ -107,7 +115,7 @@ function recursionTemplate(rng) {
   ].join('\n');
 }
 
-export function code(rng, id) {
+export function code(rng, id, level = 3) {
   const template = pick(rng, [
     nestedLoopTemplate,
     sortTemplate,
@@ -115,7 +123,7 @@ export function code(rng, id) {
     frequencyTemplate,
     recursionTemplate,
   ]);
-  const snippet = template(rng);
+  const snippet = template(rng, level);
   const expected = runJs(snippet);
   const numeric = /^-?\d+$/.test(expected);
 

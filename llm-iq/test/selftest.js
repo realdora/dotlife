@@ -18,6 +18,19 @@ const assert = (cond, msg) => {
   assert(JSON.stringify(a) !== JSON.stringify(c), 'different seed → different suite');
 }
 
+// profiles are ladders with sane shape
+{
+  for (const [name, spec] of Object.entries(PROFILES)) {
+    const suite = buildSuite('shape', name);
+    assert(suite.length === spec.length, `profile ${name} builds ${spec.length} questions`);
+    assert(suite.every((q) => q.level >= 0 && q.level <= 5 && q.weight === q.level + 1),
+      `profile ${name} levels/weights sane`);
+  }
+  const sanities = buildSuite('shape', 'standard').filter((q) => q.category === 'sanity');
+  assert(sanities.length === 2 && sanities[0].prompt !== sanities[1].prompt,
+    'the two sanity questions are distinct');
+}
+
 // canonical answers pass their own checkers; garbage is rejected
 {
   const seeds = ['2026-01-01', '2026-07-06', 'alpha', 'beta', 'gamma', 'delta', 'x1', 'x2'];
@@ -50,14 +63,6 @@ const assert = (cond, msg) => {
   assert(fb.ok === false && fb.value === '7', 'labeled fallback works, flagged as format failure');
   assert(parseIntLoose('1,234.') === 1234, 'loose int parse');
   assert(Number.isNaN(parseIntLoose('12 apples')), 'loose int parse rejects prose');
-}
-
-// profiles sane
-{
-  for (const [name, counts] of Object.entries(PROFILES)) {
-    const n = Object.values(counts).reduce((a, b) => a + b, 0);
-    assert(buildSuite('s', name).length === n, `profile ${name} builds ${n} questions`);
-  }
 }
 
 // mock adapter end-to-end scoring

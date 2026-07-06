@@ -5,5 +5,8 @@ import { transform } from './transform.js';
 import { format } from './format.js';
 import { counting } from './counting.js';
 import { retrieval } from './retrieval.js';
+import { sanity } from './sanity.js';
 
-export const GENERATORS = { arithmetic, ordering, code, transform, format, counting, retrieval };
+export const GENERATORS = {
+  sanity, arithmetic, ordering, code, transform, format, counting, retrieval,
+};

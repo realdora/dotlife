@@ -1,23 +1,36 @@
 import { int } from '../rng.js';
 
-// Sequential string-transformation puzzle at top-model length: a 24-28
-// character string through 16-18 operations drawn from 9 op types. Errors
-// compound down the chain. Operations are generated while being applied,
-// so ground truth is exact by construction. Case-sensitive.
-export function transform(rng, id) {
+// Sequential string-transformation puzzle across the ladder: from 2 ops
+// on a 4-character string (L0) to 22 ops on a 30-character string (L5).
+// Errors compound down the chain. Operations are generated while being
+// applied, so ground truth is exact by construction. Case-sensitive.
+
+// [string length min, ops]
+const LEVELS = [
+  [4, 2],
+  [8, 5],
+  [12, 8],
+  [18, 12],
+  [24, 16],
+  [30, 22],
+];
+
+export function transform(rng, id, level = 3) {
+  const [len0, nOps] = LEVELS[level];
   const letters = 'abcdefghijklmnopqrstuvwxyz';
-  let s = Array.from({ length: int(rng, 24, 28) }, () => letters[int(rng, 0, 25)]).join('');
+  let s = Array.from({ length: len0 + int(rng, 0, 2) }, () => letters[int(rng, 0, 25)]).join('');
   const s0 = s;
+  const growCap = len0 + 8;
 
   const steps = [];
-  const nOps = int(rng, 16, 18);
   let prev = -1;
   let shrinks = 0; // cap shrinking ops so the string stays interesting
   for (let t = 0; t < nOps; t++) {
     let op = int(rng, 0, 8);
     if (op === prev) op = (op + 1) % 9;
     if ((op === 2 || op === 7) && shrinks >= 2) op = (op + 2) % 9;
-    if (op === 8 && s.length > 26) op = 0;
+    if (op === 8 && s.length > growCap) op = 0;
+    if (op === prev) op = (op + 1) % 9;
     prev = op;
     switch (op) {
       case 0:

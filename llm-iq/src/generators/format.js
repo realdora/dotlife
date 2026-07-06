@@ -1,11 +1,10 @@
 import { int, pick, sample, shuffle } from '../rng.js';
 
-// Constraint-following task at top-model density: eight simultaneous
-// mechanical constraints (count, two fixed positions, banned letter,
-// word-length band, final-letter requirement, exactly-K-words-contain-X,
-// no repeats). Everything is checkable without a dictionary, and the
-// canonical answer is constructed first — the constraints are derived
-// from it, proving they are jointly satisfiable.
+// Constraint-following task across the ladder: the canonical answer is
+// always constructed first (so every rule set is jointly satisfiable),
+// and the LEVEL decides how many of its properties become stated rules —
+// from 3 easy rules at L0 to the full nine-rule set on a longer line at
+// L4-L5. Everything is checkable without a dictionary.
 
 const POOL = [
   'sun', 'moon', 'wind', 'fish', 'bird', 'song', 'cold', 'gold', 'iron',
@@ -22,13 +21,14 @@ const POOL = [
 const BANNED = ['e', 'a', 't', 'r'];
 const MIN_LEN = 3;
 const MAX_LEN = 6;
+const N_BY_LEVEL = [5, 7, 9, 11, 13, 16];
 
-export function format(rng, id) {
+export function format(rng, id, level = 3) {
   const L = pick(rng, BANNED);
   const candidates = POOL.filter(
     (w) => !w.includes(L) && w.length >= MIN_LEN && w.length <= MAX_LEN
   );
-  const N = int(rng, 11, 14);
+  const N = N_BY_LEVEL[level] + int(rng, 0, 1);
 
   // Pick a counted letter X with enough words on both sides of the split.
   const letterOptions = [];
@@ -47,7 +47,6 @@ export function format(rng, id) {
     ...sample(rng, withoutX, N - K),
   ]);
 
-  // Remaining constraints are read off the constructed answer.
   const lastWord = words[N - 1];
   const F = lastWord[lastWord.length - 1];
   const k1 = int(rng, 2, Math.floor(N / 2));
@@ -55,18 +54,28 @@ export function format(rng, id) {
   const W1 = words[k1 - 1];
   const W2 = words[k2 - 1];
 
+  // Rules, gated by level. Each rule = [minLevel, ruleText, test].
+  const RULES = [
+    [0, `exactly ${N} words, separated by single spaces`, (ws) => ws.length === N],
+    [0, `only lowercase letters a-z and spaces (no digits, punctuation, or uppercase)`, () => true],
+    [0, `word number ${k1} (counting from 1) must be exactly "${W1}"`, (ws) => ws[k1 - 1] === W1],
+    [1, `no word may appear more than once`, (ws) => new Set(ws).size === ws.length],
+    [2, `every word must be between ${MIN_LEN} and ${MAX_LEN} letters long`,
+      (ws) => ws.every((w) => w.length >= MIN_LEN && w.length <= MAX_LEN)],
+    [2, `the letter "${L}" must not appear anywhere in the line`,
+      (ws) => !ws.join(' ').includes(L)],
+    [3, `word number ${k2} must be exactly "${W2}"`, (ws) => ws[k2 - 1] === W2],
+    [3, `the final word must end with the letter "${F}"`,
+      (ws) => ws[ws.length - 1].endsWith(F)],
+    [4, `exactly ${K} of the ${N} words must contain the letter "${X}" (the others must not contain it)`,
+      (ws) => ws.filter((w) => w.includes(X)).length === K],
+  ];
+  const active = RULES.filter(([minLevel]) => level >= minLevel);
+
   const prompt =
     `Write exactly one line of text satisfying ALL of these rules:\n` +
-    `- exactly ${N} words, separated by single spaces\n` +
-    `- only lowercase letters a-z and spaces (no digits, punctuation, or uppercase)\n` +
-    `- every word must be between ${MIN_LEN} and ${MAX_LEN} letters long\n` +
-    `- word number ${k1} (counting from 1) must be exactly "${W1}"\n` +
-    `- word number ${k2} must be exactly "${W2}"\n` +
-    `- the final word must end with the letter "${F}"\n` +
-    `- exactly ${K} of the ${N} words must contain the letter "${X}" (the others must not contain it)\n` +
-    `- the letter "${L}" must not appear anywhere in the line\n` +
-    `- no word may appear more than once\n` +
-    `The line does not need to be a meaningful sentence.`;
+    active.map(([, text]) => `- ${text}`).join('\n') +
+    `\nThe line does not need to be a meaningful sentence.`;
 
   return {
     id,
@@ -76,14 +85,8 @@ export function format(rng, id) {
     check: (v) => {
       const line = String(v).trim();
       if (!/^[a-z]+( [a-z]+)*$/.test(line)) return false;
-      if (line.includes(L)) return false;
       const ws = line.split(' ');
-      if (ws.length !== N) return false;
-      if (ws.some((w) => w.length < MIN_LEN || w.length > MAX_LEN)) return false;
-      if (ws[k1 - 1] !== W1 || ws[k2 - 1] !== W2) return false;
-      if (ws[N - 1][ws[N - 1].length - 1] !== F) return false;
-      if (ws.filter((w) => w.includes(X)).length !== K) return false;
-      return new Set(ws).size === N;
+      return active.every(([, , test]) => test(ws));
     },
   };
 }

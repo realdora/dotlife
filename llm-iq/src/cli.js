@@ -15,7 +15,8 @@ usage: llm-iq [options]
 options:
   --adapter <name>       claude | api | mock   (default: claude)
   --model <id>           force a model (claude: passed to CLI; api: model id)
-  --quick                small suite (~12 questions, no retrieval)
+  --effort <level>       pass an effort level to the claude CLI
+  --quick                small ladder (~13 questions)
   --profile <name>       ${Object.keys(PROFILES).join(' | ')}   (default: standard)
   --seed <str>           question seed (default: today's UTC date — everyone
                          running the same day gets comparable questions)
@@ -23,14 +24,17 @@ options:
   --concurrency <n>      parallel requests (default: 4)
   --timeout <sec>        per-question timeout (default: 240)
   --mock-accuracy <p>    mock adapter accuracy 0..1 (default: 0.8)
+  --no-probe             skip the self-reported-effort probe question
   --dry-run              print generated questions + expected answers, don't run
   --history              print recorded run history and exit
   --json                 machine-readable result on stdout
   --no-save              don't record this run in history
   -h, --help             this help
 
-Scores are only meaningful against your own baseline: run it daily for a
-week, then the verdict line starts telling you whether today is an outlier.`;
+Questions ladder from L0 (viral basics) to L5 (beyond current frontier);
+the report shows where each category breaks. Scores are only meaningful
+against your own baseline: run daily for a week, then the verdict line
+starts telling you whether today is an outlier.`;
 
 function parseArgs(argv) {
   const o = {
@@ -41,12 +45,14 @@ function parseArgs(argv) {
     timeout: 240,
     mockAccuracy: 0.8,
     save: true,
+    probe: true,
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     switch (a) {
       case '--adapter': o.adapter = argv[++i]; break;
       case '--model': o.model = argv[++i]; break;
+      case '--effort': o.effort = argv[++i]; break;
       case '--quick': o.profile = 'quick'; break;
       case '--profile': o.profile = argv[++i]; break;
       case '--seed': o.seed = argv[++i]; break;
@@ -54,6 +60,7 @@ function parseArgs(argv) {
       case '--concurrency': o.concurrency = Math.max(1, Number(argv[++i]) || 4); break;
       case '--timeout': o.timeout = Math.max(10, Number(argv[++i]) || 240); break;
       case '--mock-accuracy': o.mockAccuracy = Number(argv[++i]); break;
+      case '--no-probe': o.probe = false; break;
       case '--dry-run': o.dryRun = true; break;
       case '--history': o.showHistory = true; break;
       case '--json': o.json = true; break;
@@ -67,7 +74,7 @@ function parseArgs(argv) {
 
 function makeAdapter(o) {
   switch (o.adapter) {
-    case 'claude': return claudeCodeAdapter({ model: o.model });
+    case 'claude': return claudeCodeAdapter({ model: o.model, effort: o.effort });
     case 'api': return anthropicApiAdapter(o.model ? { model: o.model } : {});
     case 'mock': return mockAdapter({ accuracy: o.mockAccuracy });
     default: throw new Error(`unknown adapter: ${o.adapter} (use claude | api | mock)`);
@@ -97,6 +104,11 @@ function mode(values) {
   return best;
 }
 
+const EFFORT_PROBE =
+  'Without using any tools: what reasoning effort level are you currently ' +
+  'configured to run at? Answer with exactly one word (for example "low", ' +
+  '"medium", "high", or "unknown" if you genuinely cannot tell).';
+
 export async function main(argv) {
   const opts = parseArgs(argv);
   if (opts.help) { console.log(HELP); return; }
@@ -121,7 +133,8 @@ export async function main(argv) {
   const estTokens = Math.round(suite.reduce((a, q) => a + q.prompt.length, 0) / 4) * opts.samples;
   log(`llm-iq v${TOOL_VERSION} · bench v${BENCH_VERSION} · seed ${seed} · ${opts.profile} ` +
     `(${suite.length} questions × ${opts.samples})`);
-  log(`adapter ${adapter.name}${opts.model ? ` · model ${opts.model}` : ''} · ` +
+  log(`adapter ${adapter.name}${opts.model ? ` · model ${opts.model}` : ''}` +
+    `${opts.effort ? ` · effort ${opts.effort}` : ''} · ` +
     `~${estTokens.toLocaleString()} input tokens + model output\n`);
 
   const tasks = [];
@@ -141,27 +154,43 @@ export async function main(argv) {
         break;
       } catch (e) {
         lastErr = e;
-        if (attempt < RETRIES) log(`  ${q.id.padEnd(13)} retrying (${String(e.message || e).slice(0, 80)})`);
+        if (attempt < RETRIES) log(`  ${q.id.padEnd(16)} retrying (${String(e.message || e).slice(0, 80)})`);
       }
     }
     if (lastErr) {
       done++;
-      log(`  [${done}/${tasks.length}] ${q.id.padEnd(13)} ✗ error: ${String(lastErr.message || lastErr).slice(0, 120)}`);
+      log(`  [${done}/${tasks.length}] ${q.id.padEnd(16)} ✗ error: ${String(lastErr.message || lastErr).slice(0, 120)}`);
       return { q, error: String(lastErr.message || lastErr) };
     }
     const ex = extractAnswer(r.text);
     const correct = ex.value ? q.check(ex.value) : false;
     done++;
-    log(`  [${done}/${tasks.length}] ${q.id.padEnd(13)} ${correct ? '✓' : '✗'} ${(r.durationMs / 1000).toFixed(1)}s`);
+    log(`  [${done}/${tasks.length}] ${q.id.padEnd(16)} ${correct ? '✓' : '✗'} ${(r.durationMs / 1000).toFixed(1)}s`);
     return { q, correct, formatOk: ex.ok, model: r.model, costUsd: r.costUsd };
   });
 
+  // Aggregate per category and per rung (category × level).
   const categories = {};
+  const rungMap = new Map();
+  let weightTotal = 0;
+  let weightCorrect = 0;
   for (const r of results) {
     const c = (categories[r.q.category] ||= { n: 0, correct: 0 });
     c.n++;
-    if (r.correct) c.correct++;
+    weightTotal += r.q.weight;
+    if (r.correct) {
+      c.correct++;
+      weightCorrect += r.q.weight;
+    }
+    const key = `${r.q.category}:${r.q.level}`;
+    const rung = rungMap.get(key) || { cat: r.q.category, level: r.q.level, n: 0, correct: 0 };
+    rung.n++;
+    if (r.correct) rung.correct++;
+    rungMap.set(key, rung);
   }
+  const rungs = [...rungMap.values()].sort(
+    (a, b) => a.cat.localeCompare(b.cat) || a.level - b.level
+  );
   const correct = results.filter((r) => r.correct).length;
   const costUsd = results.reduce((a, r) => a + (r.costUsd || 0), 0) || undefined;
 
@@ -171,18 +200,29 @@ export async function main(argv) {
     tool: TOOL_VERSION,
     adapter: adapter.name,
     model: mode(results.map((r) => r.model)),
+    effortFlag: opts.effort,
     profile: opts.profile,
     seed,
     samples: opts.samples,
     n: results.length,
     correct,
-    score: Number(((100 * correct) / results.length).toFixed(1)),
+    score: Number(((100 * weightCorrect) / weightTotal).toFixed(1)),
     errors: results.filter((r) => r.error).length,
     formatFails: results.filter((r) => !r.error && !r.formatOk).length,
     categories,
+    rungs,
     durationMs: Date.now() - t0,
     costUsd,
   };
+
+  // Self-reported effort — a diagnostic, not part of the score. Models
+  // may not know or may guess; treat it as a hint, not ground truth.
+  if (opts.probe && adapter.name === 'claude-code') {
+    try {
+      const r = await adapter.run(EFFORT_PROBE + '\n\n' + ANSWER_INSTRUCTIONS, null, { timeoutMs: 90000 });
+      entry.effortSelfReport = extractAnswer(r.text).value.slice(0, 40);
+    } catch { /* diagnostic only */ }
+  }
 
   // Baseline = prior runs with the same bench version, adapter and profile.
   const prior = loadHistory().filter(
