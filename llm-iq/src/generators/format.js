@@ -1,10 +1,11 @@
-import { int, pick, sample } from '../rng.js';
+import { int, pick, sample, shuffle } from '../rng.js';
 
-// Constraint-following task at top-model density: seven simultaneous
+// Constraint-following task at top-model density: eight simultaneous
 // mechanical constraints (count, two fixed positions, banned letter,
-// word-length band, final-letter requirement, no repeats). Everything is
-// checkable without a dictionary, and the canonical answer is constructed
-// alongside the constraints, proving they are satisfiable.
+// word-length band, final-letter requirement, exactly-K-words-contain-X,
+// no repeats). Everything is checkable without a dictionary, and the
+// canonical answer is constructed first — the constraints are derived
+// from it, proving they are jointly satisfiable.
 
 const POOL = [
   'sun', 'moon', 'wind', 'fish', 'bird', 'song', 'cold', 'gold', 'iron',
@@ -29,16 +30,26 @@ export function format(rng, id) {
   );
   const N = int(rng, 11, 14);
 
-  // Final word must end with letter F; pick F from what the pool offers.
-  const lastLetters = [...new Set(candidates.map((w) => w[w.length - 1]))];
-  const F = pick(rng, lastLetters);
-  const enders = candidates.filter((w) => w[w.length - 1] === F);
-  const lastWord = pick(rng, enders);
+  // Pick a counted letter X with enough words on both sides of the split.
+  const letterOptions = [];
+  for (const X of 'osnldgcik') {
+    if (X === L) continue;
+    const withX = candidates.filter((w) => w.includes(X)).length;
+    if (withX >= 5 && candidates.length - withX >= N) letterOptions.push(X);
+  }
+  const X = pick(rng, letterOptions);
+  const withX = candidates.filter((w) => w.includes(X));
+  const withoutX = candidates.filter((w) => !w.includes(X));
 
-  const rest = sample(rng, candidates.filter((w) => w !== lastWord), N - 1);
-  const words = [...rest, lastWord];
+  const K = int(rng, 2, Math.min(4, withX.length));
+  const words = shuffle(rng, [
+    ...sample(rng, withX, K),
+    ...sample(rng, withoutX, N - K),
+  ]);
 
-  // Two fixed interior positions, k1 < k2, neither being the last slot.
+  // Remaining constraints are read off the constructed answer.
+  const lastWord = words[N - 1];
+  const F = lastWord[lastWord.length - 1];
   const k1 = int(rng, 2, Math.floor(N / 2));
   const k2 = int(rng, Math.floor(N / 2) + 1, N - 1);
   const W1 = words[k1 - 1];
@@ -52,6 +63,7 @@ export function format(rng, id) {
     `- word number ${k1} (counting from 1) must be exactly "${W1}"\n` +
     `- word number ${k2} must be exactly "${W2}"\n` +
     `- the final word must end with the letter "${F}"\n` +
+    `- exactly ${K} of the ${N} words must contain the letter "${X}" (the others must not contain it)\n` +
     `- the letter "${L}" must not appear anywhere in the line\n` +
     `- no word may appear more than once\n` +
     `The line does not need to be a meaningful sentence.`;
@@ -70,6 +82,7 @@ export function format(rng, id) {
       if (ws.some((w) => w.length < MIN_LEN || w.length > MAX_LEN)) return false;
       if (ws[k1 - 1] !== W1 || ws[k2 - 1] !== W2) return false;
       if (ws[N - 1][ws[N - 1].length - 1] !== F) return false;
+      if (ws.filter((w) => w.includes(X)).length !== K) return false;
       return new Set(ws).size === N;
     },
   };

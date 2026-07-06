@@ -3,8 +3,8 @@ import { GENERATORS } from './generators/index.js';
 import { BENCH_VERSION } from './version.js';
 
 export const PROFILES = {
-  quick: { arithmetic: 3, ordering: 2, code: 3, transform: 2, format: 2, retrieval: 0 },
-  standard: { arithmetic: 6, ordering: 5, code: 6, transform: 5, format: 5, retrieval: 2 },
+  quick: { arithmetic: 2, ordering: 2, code: 2, transform: 2, format: 2, counting: 2, retrieval: 0 },
+  standard: { arithmetic: 5, ordering: 4, code: 5, transform: 4, format: 4, counting: 4, retrieval: 3 },
 };
 
 export const ANSWER_INSTRUCTIONS =

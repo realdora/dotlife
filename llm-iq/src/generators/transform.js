@@ -1,16 +1,16 @@
 import { int } from '../rng.js';
 
-// Sequential string-transformation puzzle at top-model length: a 12-14
-// character string through 7-8 operations drawn from 9 op types. Errors
+// Sequential string-transformation puzzle at top-model length: a 16-18
+// character string through 10-12 operations drawn from 9 op types. Errors
 // compound down the chain. Operations are generated while being applied,
 // so ground truth is exact by construction. Case-sensitive.
 export function transform(rng, id) {
   const letters = 'abcdefghijklmnopqrstuvwxyz';
-  let s = Array.from({ length: int(rng, 12, 14) }, () => letters[int(rng, 0, 25)]).join('');
+  let s = Array.from({ length: int(rng, 16, 18) }, () => letters[int(rng, 0, 25)]).join('');
   const s0 = s;
 
   const steps = [];
-  const nOps = int(rng, 7, 8);
+  const nOps = int(rng, 10, 12);
   let prev = -1;
   let shrinks = 0; // cap shrinking ops so the string stays interesting
   for (let t = 0; t < nOps; t++) {

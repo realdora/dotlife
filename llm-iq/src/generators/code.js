@@ -23,8 +23,8 @@ function randWord(rng, len, alphabet = 'abcdefghijklmnopqrstuvwxyz') {
 }
 
 function nestedLoopTemplate(rng) {
-  const A = int(rng, 4, 6);
-  const B = int(rng, 9, 14);
+  const A = int(rng, 6, 8);
+  const B = int(rng, 15, 20);
   const S = int(rng, 2, 3);
   const M = int(rng, 3, 4);
   const R = int(rng, 0, M - 1);
@@ -49,7 +49,7 @@ function nestedLoopTemplate(rng) {
 
 function sortTemplate(rng) {
   const xs = [];
-  while (xs.length < 10) {
+  while (xs.length < 12) {
     const v = int(rng, 1, 99);
     if (!xs.includes(v)) xs.push(v);
   }
@@ -57,13 +57,13 @@ function sortTemplate(rng) {
   return [
     `const xs = [${xs.join(', ')}];`,
     `const ys = xs.slice().sort((a, b) => (a % ${M}) - (b % ${M}) || a - b);`,
-    `const r = ys[2] * 100 + ys[ys.length - 3] + xs.indexOf(ys[0]);`,
+    `const r = ys[1] * 100 + ys[4] + ys[ys.length - 2] * xs.indexOf(ys[0]) + xs.indexOf(ys[ys.length - 1]);`,
     `console.log(r);`,
   ].join('\n');
 }
 
 function charCodeTemplate(rng) {
-  const s = randWord(rng, int(rng, 8, 10));
+  const s = randWord(rng, int(rng, 12, 14));
   const K = int(rng, 2, 5);
   const A = int(rng, 1, 2);
   return [
@@ -73,26 +73,29 @@ function charCodeTemplate(rng) {
     `  const c = s.charCodeAt(i) - 97;`,
     `  out += String.fromCharCode(97 + (c + i * ${K}) % 26);`,
     `}`,
-    `console.log(out.toUpperCase().slice(${A}, out.length - 1));`,
+    `const rev = out.split('').reverse().join('');`,
+    `console.log(rev.toUpperCase().slice(${A}, rev.length - 1));`,
   ].join('\n');
 }
 
 function frequencyTemplate(rng) {
   // Narrow alphabet forces repeats so the filter has something to keep.
-  const s = randWord(rng, int(rng, 14, 16), 'abcdefgh');
+  const s = randWord(rng, int(rng, 20, 24), 'abcdef');
   return [
     `const s = '${s}';`,
     `const counts = {};`,
     `for (const ch of s) {`,
     `  counts[ch] = (counts[ch] || 0) + 1;`,
     `}`,
-    `const pairs = Object.entries(counts).filter(([c, n]) => n >= 2);`,
+    `const pairs = Object.entries(counts)`,
+    `  .filter(([c, n]) => n >= 3)`,
+    `  .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));`,
     `console.log(pairs.map(([c, n]) => c + n).join('-'));`,
   ].join('\n');
 }
 
 function recursionTemplate(rng) {
-  const N = int(rng, 9, 12);
+  const N = int(rng, 13, 16);
   const K = int(rng, 1, 3);
   return [
     `function f(n) {`,

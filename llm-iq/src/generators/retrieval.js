@@ -1,9 +1,11 @@
 import { int, pick, sample, shuffle } from '../rng.js';
+import { parseIntLoose } from '../answer.js';
 
-// Needle-in-a-haystack with active distractors: 40 paragraphs (~2.5k
-// tokens) with five planted facility codes, plus two traps near the
-// target — an "annex" code for the same city and a rotated former code
-// for the same facility. Sloppy retrieval picks up the wrong number.
+// Multi-hop needle-in-a-haystack: 40 paragraphs (~2.5k tokens) with five
+// planted facility codes plus traps (an "annex" code and a retired former
+// code for the queried facilities). The question asks for the SUM of two
+// facilities' current codes — retrieval alone isn't enough, both needles
+// must be found, the traps rejected, and the numbers combined.
 
 const SUBJECTS = [
   'the logistics team', 'the finance group', 'the design unit',
@@ -51,14 +53,14 @@ export function retrieval(rng, id) {
     if (!codes.includes(c)) codes.push(c);
   }
 
-  const target = int(rng, 0, 4);
+  const [t1, t2] = sample(rng, [0, 1, 2, 3, 4], 2);
   const facts = cities.map(
     (city, t) => `The access code for the ${city} facility is ${codes[t]}.`
   );
-  // Traps: same-city annex code, and a rotated former code for the target.
-  facts.push(`The access code for the ${cities[target]} annex is ${codes[5]}.`);
+  // Traps aimed at the two queried facilities.
+  facts.push(`The access code for the ${cities[t1]} annex is ${codes[5]}.`);
   facts.push(
-    `Note that the former access code for the ${cities[target]} facility, ${codes[6]}, ` +
+    `Note that the former access code for the ${cities[t2]} facility, ${codes[6]}, ` +
       `was retired during the last security rotation.`
   );
 
@@ -67,7 +69,7 @@ export function retrieval(rng, id) {
     paras[slots[i]] += ' ' + fact;
   });
 
-  const answer = String(codes[target]);
+  const sum = codes[t1] + codes[t2];
 
   return {
     id,
@@ -75,9 +77,9 @@ export function retrieval(rng, id) {
     prompt:
       `Below is an internal company document. Read it and answer the question at the end.\n\n` +
       `<document>\n${paras.join('\n\n')}\n</document>\n\n` +
-      `Question: What is the current access code for the ${cities[target]} facility? ` +
-      `Reply with just the 4-digit code.`,
-    answer,
-    check: (v) => String(v).replace(/\D/g, '') === answer,
+      `Question: What is the sum of the current access codes for the ${cities[t1]} facility ` +
+      `and the ${cities[t2]} facility? Answer with just the number.`,
+    answer: String(sum),
+    check: (v) => parseIntLoose(v) === sum,
   };
 }
