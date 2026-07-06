@@ -1,0 +1,24 @@
+{
+  "name": "llm-iq",
+  "version": "0.1.0",
+  "description": "One-command IQ check for your LLM coding agent. Detects silent degradation with seeded dynamic benchmarks and local baselines.",
+  "type": "module",
+  "bin": {
+    "llm-iq": "bin/llm-iq.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node test/selftest.js"
+  },
+  "keywords": [
+    "llm",
+    "benchmark",
+    "claude-code",
+    "codex",
+    "degradation",
+    "nerf"
+  ],
+  "license": "MIT"
+}
