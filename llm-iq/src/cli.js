@@ -1,8 +1,6 @@
 import { buildSuite, PROFILES, ANSWER_INSTRUCTIONS } from './suite.js';
 import { extractAnswer } from './answer.js';
-import { claudeCodeAdapter } from './adapters/claude-code.js';
-import { anthropicApiAdapter } from './adapters/anthropic-api.js';
-import { mockAdapter } from './adapters/mock.js';
+import { ADAPTERS, makeAdapter } from './adapters/index.js';
 import { loadHistory, appendHistory } from './history.js';
 import { assessAgainstBaseline } from './stats.js';
 import { renderReport, renderHistory } from './report.js';
@@ -13,9 +11,12 @@ const HELP = `llm-iq v${TOOL_VERSION} — one-command IQ check for your LLM codi
 usage: llm-iq [options]
 
 options:
-  --adapter <name>       claude | api | mock   (default: claude)
-  --model <id>           force a model (claude: passed to CLI; api: model id)
-  --effort <level>       pass an effort level to the claude CLI
+  --adapter <name>       ${Object.keys(ADAPTERS).join(' | ')}   (default: claude)
+${Object.entries(ADAPTERS).map(([k, v]) => `                           ${k}: ${v.desc}`).join('\n')}
+  --model <id>           force a model (CLIs: passed through; APIs: model id)
+  --effort <level>       effort level (claude --effort / codex
+                         model_reasoning_effort / openai reasoning_effort)
+  --base-url <url>       endpoint root for --adapter openai
   --quick                small ladder (~13 questions)
   --profile <name>       ${Object.keys(PROFILES).join(' | ')}   (default: standard)
   --seed <str>           question seed (default: today's UTC date — everyone
@@ -53,6 +54,7 @@ function parseArgs(argv) {
       case '--adapter': o.adapter = argv[++i]; break;
       case '--model': o.model = argv[++i]; break;
       case '--effort': o.effort = argv[++i]; break;
+      case '--base-url': o.baseUrl = argv[++i]; break;
       case '--quick': o.profile = 'quick'; break;
       case '--profile': o.profile = argv[++i]; break;
       case '--seed': o.seed = argv[++i]; break;
@@ -70,15 +72,6 @@ function parseArgs(argv) {
     }
   }
   return o;
-}
-
-function makeAdapter(o) {
-  switch (o.adapter) {
-    case 'claude': return claudeCodeAdapter({ model: o.model, effort: o.effort });
-    case 'api': return anthropicApiAdapter(o.model ? { model: o.model } : {});
-    case 'mock': return mockAdapter({ accuracy: o.mockAccuracy });
-    default: throw new Error(`unknown adapter: ${o.adapter} (use claude | api | mock)`);
-  }
 }
 
 async function pool(items, limit, fn) {
@@ -217,7 +210,7 @@ export async function main(argv) {
 
   // Self-reported effort — a diagnostic, not part of the score. Models
   // may not know or may guess; treat it as a hint, not ground truth.
-  if (opts.probe && adapter.name === 'claude-code') {
+  if (opts.probe && adapter.probeSupported) {
     try {
       const r = await adapter.run(EFFORT_PROBE + '\n\n' + ANSWER_INSTRUCTIONS, null, { timeoutMs: 90000 });
       entry.effortSelfReport = extractAnswer(r.text).value.slice(0, 40);

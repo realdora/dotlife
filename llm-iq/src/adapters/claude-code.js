@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { exec } from './exec.js';
 
 // Runs questions through the full Claude Code product pipeline via
 // `claude -p` headless mode. This measures what the user actually gets —
@@ -6,38 +6,10 @@ import { spawn } from 'node:child_process';
 // user's own subscription quota. The actually-used model ID is captured
 // from the JSON result so silent model switches are visible.
 
-function exec(cmd, args, stdin, timeoutMs, env) {
-  return new Promise((resolve) => {
-    const p = spawn(cmd, args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: env ? { ...process.env, ...env } : process.env,
-    });
-    let out = '';
-    let err = '';
-    let timedOut = false;
-    const timer = setTimeout(() => {
-      timedOut = true;
-      p.kill('SIGKILL');
-    }, timeoutMs);
-    p.stdout.on('data', (d) => (out += d));
-    p.stderr.on('data', (d) => (err += d));
-    p.on('error', (e) => {
-      clearTimeout(timer);
-      resolve({ stdout: out, stderr: String(e), code: -1, timedOut });
-    });
-    p.on('close', (code) => {
-      clearTimeout(timer);
-      resolve({ stdout: out, stderr: err, code, timedOut });
-    });
-    p.stdin.on('error', () => {});
-    p.stdin.write(stdin);
-    p.stdin.end();
-  });
-}
-
 export function claudeCodeAdapter({ model, effort, env } = {}) {
   return {
     name: 'claude-code',
+    probeSupported: true,
     async run(prompt, _q, { timeoutMs = 240000 } = {}) {
       const args = ['-p', '--output-format', 'json', '--max-turns', '3'];
       if (model) args.push('--model', model);

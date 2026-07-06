@@ -1,9 +1,22 @@
 # llm-iq
 
-One-command IQ check for your LLM coding agent. Detects silent degradation
-("did they nerf it?") by running a seeded, dynamically generated benchmark
-through the **actual product pipeline** you use — not the raw API — and
-comparing today's result against your own rolling baseline.
+One-command IQ check for any LLM. Detects silent degradation ("did they
+nerf it?") by running a seeded, dynamically generated benchmark through
+the **actual product pipeline** you use — not just the raw API — and
+comparing today's result against your own rolling baseline. The core
+engine is provider-agnostic; agents plug in as adapters:
+
+| adapter  | measures                              | quota it consumes    |
+|----------|---------------------------------------|----------------------|
+| `claude` | Claude Code CLI pipeline (default)    | your Claude sub      |
+| `codex`  | OpenAI Codex CLI pipeline             | your ChatGPT sub     |
+| `api`    | raw Anthropic API                     | API credits          |
+| `openai` | any OpenAI-compatible endpoint (OpenRouter, Ollama, DeepSeek, …) | provider credits |
+| `mock`   | simulated model for development       | nothing              |
+
+Same day = same seed = same questions, so scores across adapters are
+directly comparable: not just "did Claude degrade" but **"which agent is
+smarter today"** — the actual switch-or-stay decision.
 
 ```
 $ llm-iq
@@ -79,11 +92,15 @@ Requires Node ≥ 18 and (for the default adapter) an authenticated
 npm install -g .        # from this directory; npm registry publish TBD
 llm-iq                  # full ladder (34 questions) through claude -p
 llm-iq --quick          # 13 questions, faster/cheaper
-llm-iq --adapter api    # raw Anthropic API instead (needs ANTHROPIC_API_KEY)
+llm-iq --adapter codex  # same ladder through codex exec (ChatGPT sub)
+llm-iq --adapter openai --base-url https://openrouter.ai/api/v1 --model <id>
 llm-iq --history        # your recorded runs
 llm-iq --dry-run        # inspect today's generated questions + answers
 llm-iq --help           # everything else
 ```
+
+Baselines are tracked per adapter, so running several agents side by
+side never mixes their statistics.
 
 A run consumes your subscription quota (or API credits): roughly one short
 request per question, a few minutes wall-clock. If you're near your usage
@@ -99,11 +116,16 @@ evidence.
 The CLI is the engine; wrap it however you'll actually see it:
 
 - **Menu bar (macOS)** — `tools/swiftbar/llm-iq.15m.sh` is a
-  [SwiftBar](https://github.com/swiftbar/SwiftBar)/xbar plugin that shows
-  the latest verdict (🧠 82 / ⚠️ / 🔻) in your menu bar. It only reads
-  local history (zero quota), with a "Run benchmark now" click action.
+  [SwiftBar](https://github.com/swiftbar/SwiftBar)/xbar plugin showing
+  the latest verdict per agent (`🧠 C:82 X:79`) in your menu bar. It only
+  reads local history (zero quota), with "Run …" click actions.
 - **Scheduled runs** — cron/launchd `llm-iq --quick` each morning keeps
   the menu bar current without you remembering anything.
+- **Slash commands** — for the moment you actually suspect degradation,
+  mid-session: copy `tools/claude-command/iq.md` to
+  `~/.claude/commands/` and `/iq` benchmarks Claude Code from inside
+  Claude Code; copy `tools/codex-prompt/iq.md` to `~/.codex/prompts/`
+  for the Codex equivalent.
 - **MCP server** — planned: expose `run_benchmark` / `latest_verdict`
   tools so any MCP client can ask "is my model degraded today?".
 
@@ -138,7 +160,8 @@ Measured via `scripts/calibrate.js` on Claude Code:
 ## Roadmap
 
 - Tier-gradient validation of v5 rungs (fable/sonnet/haiku + effort levels)
-- Codex CLI adapter (`codex exec`), OpenAI-compatible API adapter
+- Live verification of the codex adapter against a real Codex install
+- More adapters (Gemini CLI, …) — one registry entry each
 - MCP server wrapper
 - Opt-in anonymous score aggregation ("is it just me, or is everyone's
   score down today?") — strictly opt-in, payload shown before upload,

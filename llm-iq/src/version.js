@@ -15,4 +15,4 @@
 //     moves up an existing ladder.
 export const BENCH_VERSION = 5;
 
-export const TOOL_VERSION = '0.5.0';
+export const TOOL_VERSION = '0.6.0';

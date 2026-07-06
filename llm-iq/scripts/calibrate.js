@@ -2,11 +2,13 @@
 // and prints per-rung accuracy plus every miss (expected vs got). Used to
 // verify the ladder discriminates between model tiers / effort levels.
 //
-// usage: node scripts/calibrate.js [--model id] [--effort low|medium|high]
-//        [--profile standard] [--seed cal] [--concurrency 4] [--thinking N]
+// usage: node scripts/calibrate.js [--adapter claude|codex|...] [--model id]
+//        [--effort low|medium|high] [--profile standard] [--seed cal]
+//        [--concurrency 4] [--thinking N]
 
 import { buildSuite, ANSWER_INSTRUCTIONS } from '../src/suite.js';
 import { extractAnswer } from '../src/answer.js';
+import { makeAdapter } from '../src/adapters/index.js';
 import { claudeCodeAdapter } from '../src/adapters/claude-code.js';
 import { BENCH_VERSION } from '../src/version.js';
 
@@ -16,6 +18,7 @@ const opt = (name, dflt) => {
   return i >= 0 ? args[i + 1] : dflt;
 };
 
+const adapterName = opt('--adapter', 'claude');
 const model = opt('--model');
 const effort = opt('--effort');
 const thinking = opt('--thinking');
@@ -25,11 +28,16 @@ const concurrency = Number(opt('--concurrency', 4));
 
 const questions = buildSuite(seed, profile);
 
-const adapter = claudeCodeAdapter({
-  ...(model ? { model } : {}),
-  ...(effort ? { effort } : {}),
-  ...(thinking !== undefined ? { env: { MAX_THINKING_TOKENS: String(thinking) } } : {}),
-});
+// --thinking is a claude-only env override; everything else goes
+// through the shared adapter registry.
+const adapter =
+  thinking !== undefined
+    ? claudeCodeAdapter({
+        ...(model ? { model } : {}),
+        ...(effort ? { effort } : {}),
+        env: { MAX_THINKING_TOKENS: String(thinking) },
+      })
+    : makeAdapter({ adapter: adapterName, model, effort });
 console.error(
   `calibrating bench v${BENCH_VERSION} · ${profile} (${questions.length} questions) · adapter ${adapter.name}` +
     `${model ? ` · model ${model}` : ''}${effort ? ` · effort ${effort}` : ''}` +

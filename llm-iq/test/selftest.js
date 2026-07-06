@@ -1,6 +1,7 @@
 import { buildSuite, PROFILES } from '../src/suite.js';
 import { extractAnswer, parseIntLoose } from '../src/answer.js';
 import { mockAdapter } from '../src/adapters/mock.js';
+import { ADAPTERS, makeAdapter } from '../src/adapters/index.js';
 import { wilson, assessAgainstBaseline } from '../src/stats.js';
 
 let fails = 0;
@@ -80,6 +81,23 @@ const assert = (cond, msg) => {
   }
   assert(pOk === suite.length, `perfect mock scores 100% (${pOk}/${suite.length})`);
   assert(bOk === 0, `broken mock scores 0% (${bOk}/${suite.length})`);
+}
+
+// adapter registry
+{
+  assert(
+    JSON.stringify(Object.keys(ADAPTERS)) === JSON.stringify(['claude', 'codex', 'api', 'openai', 'mock']),
+    'adapter registry lists claude/codex/api/openai/mock'
+  );
+  for (const name of ['claude', 'codex', 'mock']) {
+    const a = makeAdapter({ adapter: name, mockAccuracy: 1 });
+    assert(typeof a.run === 'function' && typeof a.name === 'string', `adapter ${name} constructs (${a.name})`);
+  }
+  assert(makeAdapter({ adapter: 'claude' }).probeSupported === true, 'claude adapter supports effort probe');
+  assert(makeAdapter({ adapter: 'codex' }).probeSupported === true, 'codex adapter supports effort probe');
+  let threw = false;
+  try { makeAdapter({ adapter: 'nope' }); } catch { threw = true; }
+  assert(threw, 'unknown adapter rejected');
 }
 
 // stats
